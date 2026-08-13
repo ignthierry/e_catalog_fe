@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Plus, Edit, Trash2, X, ExternalLink, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { Banner } from '@/types';
 import { api } from '@/lib/api';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { toast } from 'sonner';
 
 export default function AdminBannersPage() {
@@ -42,8 +43,8 @@ export default function AdminBannersPage() {
     setBannerToEdit(null);
     setTitle('');
     setSubtitle('');
-    setImage('https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=80');
-    setLink('/products?category=2');
+    setImage('');
+    setLink('/products');
     setIsModalOpen(true);
   };
 
@@ -218,18 +219,15 @@ export default function AdminBannersPage() {
             </div>
 
             <form onSubmit={handleSave} className="p-5 space-y-4">
-              {/* Preview */}
-              {image && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Preview Tampilan Banner
-                  </label>
-                  <div className="aspect-[21/9] rounded-xl overflow-hidden bg-muted border border-border/60">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              )}
+              {/* Gambar Banner via FTP */}
+              <ImageUpload
+                value={image}
+                onChange={setImage}
+                label="Gambar Banner Promosi"
+                aspectRatio="banner"
+                description="Rasio 21:9 (Contoh: 1600x680px) • Format: JPG, PNG, WEBP"
+                required
+              />
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -251,18 +249,6 @@ export default function AdminBannersPage() {
                   value={subtitle}
                   onChange={(e) => setSubtitle(e.target.value)}
                   placeholder="Misal: Diskon hingga 50% untuk mainan edukasi"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  URL Gambar Banner <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  required
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
                 />
               </div>
 

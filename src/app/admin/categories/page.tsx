@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Plus, Edit, Trash2, X, Grid, RefreshCw, Layers } from 'lucide-react';
 import { Category } from '@/types';
 import { api } from '@/lib/api';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { toast } from 'sonner';
 
 export default function AdminCategoriesPage() {
@@ -39,7 +40,7 @@ export default function AdminCategoriesPage() {
   const handleOpenAdd = () => {
     setCategoryToEdit(null);
     setName('');
-    setImage('https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=600&q=80');
+    setImage('');
     setIsModalOpen(true);
   };
 
@@ -215,23 +216,13 @@ export default function AdminCategoriesPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  URL Gambar Kategori
-                </label>
-                <Input
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                />
-              </div>
-
-              {image && (
-                <div className="aspect-[16/9] rounded-xl overflow-hidden bg-muted border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
+              <ImageUpload
+                value={image}
+                onChange={setImage}
+                label="Gambar Cover Kategori"
+                aspectRatio="video"
+                description="Rasio 16:9 (Contoh: 800x450px) • Format: JPG, PNG, WEBP"
+              />
 
               <div className="pt-3 border-t flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>

@@ -17,7 +17,11 @@ import {
   Sparkles,
   Server,
   ExternalLink,
-  Layers
+  Layers,
+  ShoppingBag,
+  Clock,
+  Eye,
+  DollarSign
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -41,50 +45,6 @@ export default function AdminDashboardPage() {
         if (showToast) {
           toast.success('Data dashboard berhasil diperbarui dari database!');
         }
-      } else {
-        // Fallback fetch if combined endpoint isn't available
-        const [products, categories, banners, settings] = await Promise.all([
-          api.getProducts(),
-          api.getCategories(),
-          api.getBanners(),
-          api.getSettings(),
-        ]);
-
-        const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0);
-
-        setData({
-          stats: {
-            totalProducts: products.length,
-            totalCategories: categories.length,
-            totalBanners: banners.length,
-            totalStock,
-            lowStockCount: products.filter(p => p.stock <= 5).length,
-          },
-          recentProducts: products.slice(0, 5).map(p => ({
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            price: p.price,
-            stock: p.stock,
-            categoryId: p.categoryId,
-            categoryName: p.categoryName || 'Umum',
-            image: p.images[0] || '',
-            createdAt: p.createdAt,
-          })),
-          categoriesSummary: categories.map(c => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            productCount: c.productCount || 0,
-          })),
-          settings,
-          system: {
-            status: 'online',
-            database: 'connected',
-            phpVersion: '8.x',
-            timestamp: new Date().toISOString(),
-          }
-        });
       }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -103,20 +63,42 @@ export default function AdminDashboardPage() {
 
   const stats = [
     {
-      title: 'Total Produk',
+      title: 'Pesanan Perlu Diproses',
+      value: loading ? '...' : (data?.stats.pendingOrders?.toString() || '0'),
+      subtext: 'Menunggu konfirmasi bayar / kirim',
+      icon: ShoppingBag,
+      iconColor: 'text-amber-500',
+      bgGlow: 'bg-amber-500/10 border-amber-500/20 text-amber-500',
+      href: ROUTES.ADMIN.ORDERS,
+      change: data?.stats.pendingOrders ? `${data.stats.pendingOrders} Perlu Tindakan` : 'Semua Beres',
+      changeType: (data?.stats.pendingOrders || 0) > 0 ? 'warning' : 'positive',
+    },
+    {
+      title: 'Total Pendapatan',
+      value: loading ? '...' : formatCurrency(data?.stats.totalRevenue || 0),
+      subtext: `${data?.stats.totalOrders || 0} total transaksi masuk`,
+      icon: DollarSign,
+      iconColor: 'text-emerald-500',
+      bgGlow: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
+      href: ROUTES.ADMIN.ORDERS,
+      change: 'Omset Transaksi',
+      changeType: 'positive',
+    },
+    {
+      title: 'Total Produk Mainan',
       value: loading ? '...' : (data?.stats.totalProducts?.toString() || '0'),
-      subtext: 'Produk aktif di katalog',
+      subtext: `${data?.stats.totalStock || 0} pcs total stok fisik`,
       icon: Package,
       iconColor: 'text-blue-500',
       bgGlow: 'bg-blue-500/10 border-blue-500/20 text-blue-500',
       href: ROUTES.ADMIN.PRODUCTS,
-      change: 'Tersinkron DB',
+      change: 'Katalog Aktif',
       changeType: 'positive',
     },
     {
-      title: 'Kategori Aktif',
-      value: loading ? '...' : (data?.stats.totalCategories?.toString() || '0'),
-      subtext: 'Kategori mainan',
+      title: 'Kategori & Promo',
+      value: loading ? '...' : `${data?.stats.totalCategories || 0} / ${data?.stats.totalBanners || 0}`,
+      subtext: 'Kategori / Banner Promo',
       icon: Grid,
       iconColor: 'text-purple-500',
       bgGlow: 'bg-purple-500/10 border-purple-500/20 text-purple-500',
@@ -124,31 +106,16 @@ export default function AdminDashboardPage() {
       change: 'Live di Menu',
       changeType: 'neutral',
     },
-    {
-      title: 'Banner Promosi',
-      value: loading ? '...' : (data?.stats.totalBanners?.toString() || '0'),
-      subtext: 'Slide aktif di beranda',
-      icon: ImageIcon,
-      iconColor: 'text-amber-500',
-      bgGlow: 'bg-amber-500/10 border-amber-500/20 text-amber-500',
-      href: ROUTES.ADMIN.BANNERS,
-      change: 'Promo Aktif',
-      changeType: 'neutral',
-    },
-    {
-      title: 'Total Stok Mainan',
-      value: loading ? '...' : (data?.stats.totalStock?.toString() || '0'),
-      subtext: `${data?.stats.lowStockCount || 0} produk stok rendah`,
-      icon: Boxes,
-      iconColor: 'text-emerald-500',
-      bgGlow: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
-      href: ROUTES.ADMIN.PRODUCTS,
-      change: 'Siap Kirim',
-      changeType: 'positive',
-    },
   ];
 
   const quickActions = [
+    {
+      title: 'Kelola Pesanan',
+      desc: 'Verifikasi bukti transfer & resi',
+      icon: ShoppingBag,
+      href: ROUTES.ADMIN.ORDERS,
+      color: 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white',
+    },
     {
       title: 'Tambah Produk',
       desc: 'Masukkan katalog mainan baru',
@@ -168,14 +135,7 @@ export default function AdminDashboardPage() {
       desc: 'Kelola slide diskon beranda',
       icon: ImageIcon,
       href: ROUTES.ADMIN.BANNERS,
-      color: 'bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white',
-    },
-    {
-      title: 'Pengaturan WhatsApp',
-      desc: 'Ubah nomor kontak pesanan',
-      icon: MessageCircle,
-      href: ROUTES.ADMIN.SETTINGS,
-      color: 'bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white',
+      color: 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white',
     },
   ];
 
@@ -193,11 +153,11 @@ export default function AdminDashboardPage() {
             </h1>
             <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-bold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Backend Terhubung
+              Sistem Aktif & Terhubung
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Ringkasan data operasional langsung dari database MySQL & API Laravel.
+            Ringkasan data transaksi, pesanan customer, dan katalog mainan secara real-time.
           </p>
         </div>
 
@@ -214,9 +174,9 @@ export default function AdminDashboardPage() {
           </Button>
 
           <Button asChild size="sm" className="font-bold shadow-xs">
-            <Link href={ROUTES.ADMIN.PRODUCTS} className="gap-1.5">
-              <Plus className="w-4 h-4" />
-              Tambah Produk
+            <Link href={ROUTES.ADMIN.ORDERS} className="gap-1.5">
+              <ShoppingBag className="w-4 h-4" />
+              Lihat Pesanan
             </Link>
           </Button>
         </div>
@@ -238,7 +198,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="mt-3">
-                  <h3 className="text-3xl font-black tracking-tight text-foreground">
+                  <h3 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">
                     {stat.value}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -249,11 +209,14 @@ export default function AdminDashboardPage() {
 
               <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground font-medium flex items-center gap-1">
-                  {stat.changeType === 'positive' && <span className="text-emerald-500 font-bold">{stat.change}</span>}
-                  {stat.changeType === 'neutral' && <span className="text-muted-foreground">{stat.change}</span>}
+                  {stat.changeType === 'warning' ? (
+                    <span className="text-amber-500 font-black">{stat.change}</span>
+                  ) : (
+                    <span className="text-emerald-500 font-bold">{stat.change}</span>
+                  )}
                 </span>
                 <span className="text-[11px] text-primary font-semibold flex items-center gap-0.5 group-hover:underline">
-                  Kelola &rarr;
+                  Buka &rarr;
                 </span>
               </div>
             </Card>
@@ -301,6 +264,73 @@ export default function AdminDashboardPage() {
                   </Link>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Orders Overview (Live from DB) */}
+          <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
+            <CardHeader className="p-5 pb-3 border-b bg-muted/10">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-primary" />
+                  Pesanan Masuk Terbaru
+                </CardTitle>
+                <Link 
+                  href={ROUTES.ADMIN.ORDERS}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Kelola Semua Pesanan &rarr;
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-8 text-center text-muted-foreground text-sm space-y-2">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p>Memuat transaksi pesanan...</p>
+                </div>
+              ) : data?.recentOrders && data.recentOrders.length > 0 ? (
+                <div className="divide-y divide-border/40">
+                  {data.recentOrders.map((order) => (
+                    <div 
+                      key={order.id} 
+                      className="p-4 flex items-center justify-between gap-4 hover:bg-muted/20 transition-colors"
+                    >
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-xs text-foreground">
+                            {order.orderNumber}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted">
+                            {order.paymentMethod}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {order.customerName} ({order.customerPhone})
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {order.itemCount} barang • {order.createdAt ? new Date(order.createdAt).toLocaleDateString('id-ID') : '-'}
+                        </p>
+                      </div>
+
+                      <div className="text-right flex-shrink-0 space-y-1">
+                        <span className="font-black text-sm text-primary block">
+                          {formatCurrency(order.grandTotal)}
+                        </span>
+                        <Button asChild size="sm" variant="outline" className="h-7 text-xs font-bold rounded-lg px-2.5">
+                          <Link href={ROUTES.ADMIN.ORDERS}>
+                            <Eye className="w-3 h-3 mr-1" /> Kelola
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  Belum ada pesanan masuk di sistem.
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -355,12 +385,12 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
-                        <div className="text-right flex-shrink-0">
+                      <div className="text-right flex-shrink-0">
                         <span className="font-black text-sm text-primary block">
                           {formatCurrency(product.price)}
                         </span>
                         <Badge variant="default" className="text-[10px] bg-emerald-500 mt-1 font-bold">
-                          Aktif di Katalog
+                          Aktif
                         </Badge>
                       </div>
                     </div>
@@ -368,52 +398,8 @@ export default function AdminDashboardPage() {
                 </div>
               ) : (
                 <div className="p-8 text-center text-muted-foreground text-sm">
-                  Belum ada produk di database. Silakan tambahkan produk baru.
+                  Belum ada produk di database.
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Category Breakdown Card */}
-          <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
-            <CardHeader className="p-5 pb-3 border-b bg-muted/10">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-purple-500" />
-                  Sebaran Kategori & Jumlah Produk
-                </CardTitle>
-                <Link 
-                  href={ROUTES.ADMIN.CATEGORIES}
-                  className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
-                >
-                  Kelola Kategori &rarr;
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-5">
-              {data?.categoriesSummary && data.categoriesSummary.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {data.categoriesSummary.map((cat) => (
-                    <div 
-                      key={cat.id} 
-                      className="p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                          <Grid className="w-4 h-4" />
-                        </div>
-                        <span className="font-semibold text-xs text-foreground truncate">
-                          {cat.name}
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="text-xs font-bold font-mono">
-                        {cat.productCount} produk
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Belum ada kategori terdaftar.</p>
               )}
             </CardContent>
           </Card>
@@ -423,25 +409,25 @@ export default function AdminDashboardPage() {
         {/* Right Column (1 Col) */}
         <div className="space-y-6">
           
-          {/* WhatsApp Status Card (Live Backend Data) */}
+          {/* WhatsApp Status Card */}
           <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
             <CardHeader className="p-5 pb-3 border-b bg-emerald-500/5">
               <CardTitle className="text-base font-bold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <MessageCircle className="w-5 h-5" />
-                Integrasi WhatsApp (Live)
+                Integrasi Toko & WhatsApp
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="p-3.5 rounded-xl bg-muted/40 border space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Nomor Admin Penerima Pesanan
+                  Nomor Admin Toko
                 </span>
                 <p className="font-black text-lg text-foreground font-mono">
                   +{currentWhatsApp}
                 </p>
                 <div className="flex items-center justify-between pt-1">
                   <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan di Database
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Database Aktif
                   </span>
                   <a 
                     href={`https://wa.me/${currentWhatsApp}?text=Halo%20Admin%20${encodeURIComponent(storeName)}`}
@@ -454,13 +440,9 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground space-y-2 leading-relaxed">
-                <p>
-                  Nama Toko: <strong>{storeName}</strong>
-                </p>
-                <p>
-                  Setiap transaksi checkout otomatis diteruskan ke nomor ini dengan format invoice rapi.
-                </p>
+              <div className="text-xs text-muted-foreground space-y-1 leading-relaxed">
+                <p>Nama Toko: <strong>{storeName}</strong></p>
+                <p>Metode Pembayaran: <strong>QRIS & Transfer Bank</strong></p>
               </div>
 
               <Button 
@@ -471,40 +453,44 @@ export default function AdminDashboardPage() {
               >
                 <Link href={ROUTES.ADMIN.SETTINGS}>
                   <Settings className="w-3.5 h-3.5 mr-1.5" />
-                  Ubah Nomor WhatsApp & Toko
+                  Ubah Pengaturan Toko
                 </Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* System & API Status */}
+          {/* Category Breakdown Card */}
           <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
             <CardHeader className="p-5 pb-3 border-b bg-muted/10">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Server className="w-4 h-4 text-primary" />
-                Status Server & Database
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-purple-500" />
+                  Kategori Mainan
+                </CardTitle>
+                <Link 
+                  href={ROUTES.ADMIN.CATEGORIES}
+                  className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  Kelola &rarr;
+                </Link>
+              </div>
             </CardHeader>
-            <CardContent className="p-5 space-y-3 text-xs text-muted-foreground leading-relaxed">
-              <div className="flex items-center justify-between py-1 border-b border-border/40">
-                <span>API Gateway:</span>
-                <span className="font-semibold text-foreground font-mono">Laravel API (Port 8000)</span>
-              </div>
-              <div className="flex items-center justify-between py-1 border-b border-border/40">
-                <span>Database:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">MySQL (omega_toys_db)</span>
-              </div>
-              <div className="flex items-center justify-between py-1 border-b border-border/40">
-                <span>Konektivitas:</span>
-                <Badge variant="default" className="bg-emerald-500 text-[10px] py-0 px-2 font-bold">
-                  Online 100%
-                </Badge>
-              </div>
-
-              <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[11px] leading-relaxed">
-                <Store className="w-3.5 h-3.5 inline mr-1" />
-                Data admin panel sepenuhnya sinkron dengan database server backend secara real-time.
-              </div>
+            <CardContent className="p-4 space-y-2">
+              {data?.categoriesSummary && data.categoriesSummary.length > 0 ? (
+                data.categoriesSummary.map((cat) => (
+                  <div 
+                    key={cat.id} 
+                    className="p-2.5 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-between text-xs"
+                  >
+                    <span className="font-semibold text-foreground truncate">{cat.name}</span>
+                    <Badge variant="outline" className="font-bold font-mono">
+                      {cat.productCount} pcs
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">Belum ada kategori.</p>
+              )}
             </CardContent>
           </Card>
 

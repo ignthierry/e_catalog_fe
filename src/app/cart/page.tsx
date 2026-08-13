@@ -187,10 +187,25 @@ export default function CartPage() {
               </span>
             </div>
             
-            <WhatsAppCheckout />
+            <div className="space-y-2.5 pt-1">
+              <Button asChild size="lg" className="w-full font-extrabold rounded-2xl py-6 text-sm sm:text-base gap-2 shadow-sm">
+                <Link href={ROUTES.CHECKOUT}>
+                  <ShoppingBag className="w-5 h-5" />
+                  Checkout di Aplikasi
+                </Link>
+              </Button>
+
+              <div className="relative flex items-center justify-center my-2">
+                <span className="bg-card px-2 text-[11px] font-bold text-muted-foreground uppercase">
+                  atau
+                </span>
+              </div>
+
+              <WhatsAppCheckout />
+            </div>
             
             <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
-              Format rincian nama barang, varian, dan total harga akan disusun otomatis dan diteruskan ke WhatsApp Admin OMEGA TOYS.
+              Pilih <strong>Checkout di Aplikasi</strong> untuk pembayaran QRIS / Transfer Bank otomatis dan pelacakan pesanan secara langsung.
             </p>
           </div>
         </div>

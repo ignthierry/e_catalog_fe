@@ -13,12 +13,13 @@ import {
   Sparkles, 
   LogOut, 
   User,
-  ShieldCheck
+  ShieldCheck,
+  ShoppingBag
 } from 'lucide-react';
 import { ROUTES, APP_CONFIG } from '@/lib/constants';
 import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
-
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function AdminLayout({
@@ -28,35 +29,68 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, username, logout } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
+
+  const isLoginPage = pathname === ROUTES.ADMIN.LOGIN;
+  const isAdmin = Boolean(
+    isAuthenticated && 
+    user && 
+    (user.role === 'admin' || user.role === 'warehouse' || user.role === 'cs')
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const isLoginPage = pathname === ROUTES.ADMIN.LOGIN;
-
+  // Strict role and session protection:
+  // If not logged in, no session, or role is customer -> redirect to home '/'
   useEffect(() => {
-    if (mounted && !isLoginPage && !isAuthenticated) {
-      router.replace(ROUTES.ADMIN.LOGIN);
+    if (mounted && !isLoginPage) {
+      if (!isAuthenticated || !user || !isAdmin) {
+        if (isAuthenticated && user && user.role === 'customer') {
+          toast.error('Akses Ditolak!', {
+            description: 'Akun Anda adalah Customer. Admin Panel hanya dapat diakses oleh Administrator.',
+          });
+        } else if (!isAuthenticated) {
+          toast.error('Akses Terbatas', {
+            description: 'Silakan login terlebih dahulu sebagai Administrator untuk mengakses Admin Panel.',
+          });
+        }
+        router.replace(ROUTES.HOME);
+      }
     }
-  }, [mounted, isLoginPage, isAuthenticated, router]);
+  }, [mounted, isLoginPage, isAuthenticated, user, isAdmin, router]);
+
+  // Fetch pending count periodically if admin
+  useEffect(() => {
+    if (mounted && isAdmin) {
+      api.admin.getOrders().then((res) => {
+        if (res?.counts) {
+          setPendingOrdersCount((res.counts.verifying || 0) + (res.counts.pending || 0));
+        }
+      }).catch(() => {});
+    }
+  }, [mounted, isAdmin, pathname]);
 
   // If on login page, render children directly without sidebar/nav
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  // Loading state while checking auth
-  if (!mounted || !isAuthenticated) {
+  // Loading / Restricted state while checking auth
+  if (!mounted || !isAuthenticated || !user || !isAdmin) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-3 text-slate-400 animate-pulse">
-          <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-400 animate-pulse text-center">
+          <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center mx-auto">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <p className="text-sm font-semibold">Memverifikasi otorisasi admin...</p>
+          <div>
+            <p className="text-sm font-bold text-slate-200">Memverifikasi Otorisasi Administrator...</p>
+            <p className="text-xs text-slate-500 mt-1">Hanya akun dengan role Admin yang diizinkan.</p>
+          </div>
         </div>
       </div>
     );
@@ -65,11 +99,17 @@ export default function AdminLayout({
   const handleLogout = () => {
     logout();
     toast.info('Anda telah keluar dari Admin Panel.');
-    router.push(ROUTES.ADMIN.LOGIN);
+    router.push(ROUTES.HOME);
   };
 
   const sidebarItems = [
     { name: 'Dashboard', href: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
+    { 
+      name: 'Pesanan', 
+      href: ROUTES.ADMIN.ORDERS, 
+      icon: ShoppingBag, 
+      badge: pendingOrdersCount > 0 ? `${pendingOrdersCount}` : undefined 
+    },
     { name: 'Produk', href: ROUTES.ADMIN.PRODUCTS, icon: Package },
     { name: 'Kategori', href: ROUTES.ADMIN.CATEGORIES, icon: Grid },
     { name: 'Banner Promo', href: ROUTES.ADMIN.BANNERS, icon: ImageIcon },
@@ -115,14 +155,23 @@ export default function AdminLayout({
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   isActive
                     ? 'bg-primary text-white shadow-sm shadow-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
                 }`}
               >
-                <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
-                <span>{item.name}</span>
+                <div className="flex items-center gap-3">
+                  <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
+                  <span>{item.name}</span>
+                </div>
+                {item.badge && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                    isActive ? 'bg-white text-primary' : 'bg-red-500 text-white animate-pulse'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -137,14 +186,14 @@ export default function AdminLayout({
                 <User className="w-3.5 h-3.5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground truncate">{username || 'Admin'}</p>
-                <p className="text-[10px] text-emerald-500 font-semibold leading-none">Online</p>
+                <p className="text-xs font-bold text-foreground truncate">{user?.name || 'Admin'}</p>
+                <p className="text-[10px] text-emerald-500 font-semibold leading-none">Role: {user?.role || 'admin'}</p>
               </div>
             </div>
 
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
               title="Keluar / Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -175,7 +224,7 @@ export default function AdminLayout({
           </div>
           <div>
             <span className="font-extrabold text-sm text-foreground">{APP_CONFIG.name} Admin</span>
-            <span className="block text-[10px] text-muted-foreground">Login: {username || 'Admin'}</span>
+            <span className="block text-[10px] text-muted-foreground">Admin: {user?.name || 'Admin'}</span>
           </div>
         </div>
         
@@ -190,7 +239,7 @@ export default function AdminLayout({
           </Link>
           <button
             onClick={handleLogout}
-            className="p-1.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="p-1.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
             title="Keluar"
           >
             <LogOut className="w-4 h-4" />
@@ -198,7 +247,7 @@ export default function AdminLayout({
         </div>
       </div>
 
-      {/* Main Content (Shifted on Desktop) */}
+      {/* Main Content */}
       <main className="flex-1 md:pl-64 flex flex-col min-h-screen">
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
           {children}
@@ -213,12 +262,15 @@ export default function AdminLayout({
             <Link
               key={item.name}
               href={item.href}
-              className={`flex flex-col items-center p-2 rounded-xl text-[10px] font-medium transition-colors ${
+              className={`flex flex-col items-center p-2 rounded-xl text-[10px] font-medium transition-colors relative ${
                 isActive ? 'text-primary font-bold bg-primary/10' : 'text-muted-foreground'
               }`}
             >
               <item.icon className="w-5 h-5" />
               <span className="mt-1">{item.name}</span>
+              {item.badge && (
+                <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-red-500"></span>
+              )}
             </Link>
           );
         })}

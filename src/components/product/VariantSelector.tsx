@@ -1,6 +1,7 @@
 'use client';
 
 import { Variant } from '@/types';
+import { formatCurrency } from '@/lib/whatsapp';
 
 interface VariantSelectorProps {
   variants: Variant[];
@@ -15,22 +16,42 @@ export function VariantSelector({ variants, selectedVariants, onChange }: Varian
     <div className="space-y-4 py-4 border-y border-border">
       {variants.map((variant) => (
         <div key={variant.id}>
-          <h4 className="text-sm font-medium mb-2">{variant.name}</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+              {variant.name}
+            </h4>
+            {selectedVariants[variant.id] && (
+              <span className="text-xs font-bold text-primary">
+                Pilihan: {selectedVariants[variant.id]}
+              </span>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             {variant.options.map((option) => {
               const isSelected = selectedVariants[variant.id] === option;
-              
+              const itemData = variant.items?.find((i) => i.name === option);
+              const hasAddPrice = itemData?.additionalPrice && itemData.additionalPrice > 0;
+
               return (
                 <button
                   key={option}
+                  type="button"
                   onClick={() => onChange(variant.id, option)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                     isSelected 
-                      ? 'bg-primary text-primary-foreground border-primary' 
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs scale-102' 
                       : 'bg-background text-foreground border-border hover:border-primary/50 hover:bg-muted'
                   }`}
                 >
-                  {option}
+                  <span>{option}</span>
+                  {hasAddPrice && (
+                    <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${
+                      isSelected ? 'bg-black/20 text-white' : 'bg-primary/10 text-primary'
+                    }`}>
+                      +{formatCurrency(itemData.additionalPrice!)}
+                    </span>
+                  )}
                 </button>
               );
             })}

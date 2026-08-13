@@ -1,4 +1,4 @@
-import { Product, Category, Banner } from '@/types';
+import { Product, Category, Banner, Order, OrderCounts } from '@/types';
 import productsData from '@/data/products.json';
 import categoriesData from '@/data/categories.json';
 import bannersData from '@/data/banners.json';
@@ -12,6 +12,10 @@ export interface DashboardData {
     totalBanners: number;
     totalStock: number;
     lowStockCount: number;
+    totalOrders?: number;
+    pendingOrders?: number;
+    processingOrders?: number;
+    totalRevenue?: number;
   };
   recentProducts: {
     id: string;
@@ -22,6 +26,19 @@ export interface DashboardData {
     categoryId: string;
     categoryName: string;
     image: string;
+    createdAt?: string;
+  }[];
+  recentOrders?: {
+    id: string;
+    orderNumber: string;
+    customerName: string;
+    customerPhone: string;
+    grandTotal: number;
+    status: string;
+    paymentMethod: string;
+    paymentStatus: string;
+    paymentProof?: string | null;
+    itemCount: number;
     createdAt?: string;
   }[];
   categoriesSummary: {
@@ -164,6 +181,93 @@ export const api = {
   },
 
   // ==========================================
+  // Auth & Customer Operations
+  // ==========================================
+  auth: {
+    register: async (payload: { name: string; email: string; phone_number?: string; password: string }) => {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return await res.json();
+    },
+
+    login: async (credentials: { username: string; password: string }) => {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+      return await res.json();
+    },
+
+    getProfile: async (token: string) => {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+      });
+      return await res.json();
+    },
+  },
+
+  // ==========================================
+  // Customer Orders Endpoints
+  // ==========================================
+  orders: {
+    create: async (orderPayload: any, token?: string | null) => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/orders`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(orderPayload),
+      });
+      return await res.json();
+    },
+
+    getMyOrders: async (token?: string | null, email?: string, phone?: string): Promise<Order[]> => {
+      const query = new URLSearchParams();
+      if (email) query.append('email', email);
+      if (phone) query.append('phone', phone);
+
+      const queryString = query.toString() ? `?${query.toString()}` : '';
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/orders${queryString}`, {
+        cache: 'no-store',
+        headers,
+      });
+
+      if (!res.ok) return [];
+      const json = await res.json();
+      return Array.isArray(json.data) ? json.data : [];
+    },
+
+    getById: async (idOrNumber: string): Promise<Order | null> => {
+      const data = await fetchFromApi<Order>(`/orders/${idOrNumber}`);
+      return data;
+    },
+
+    uploadProof: async (orderId: string | number, paymentProofUrl: string) => {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/upload-proof`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ payment_proof: paymentProofUrl }),
+      });
+      return await res.json();
+    },
+  },
+
+  // ==========================================
   // Admin Endpoints
   // ==========================================
   admin: {
@@ -181,6 +285,35 @@ export const api = {
       return await res.json();
     },
 
+    // Orders Management
+    getOrders: async (params?: { status?: string; search?: string }): Promise<{ orders: Order[]; counts: OrderCounts } | null> => {
+      const query = new URLSearchParams();
+      if (params?.status) query.append('status', params.status);
+      if (params?.search) query.append('search', params.search);
+
+      const queryString = query.toString() ? `?${query.toString()}` : '';
+      const res = await fetch(`${API_BASE_URL}/admin/orders${queryString}`, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (!res.ok) return null;
+      const json = await res.json();
+      return {
+        orders: Array.isArray(json.data) ? json.data : [],
+        counts: json.counts || { all: 0, pending: 0, verifying: 0, processing: 0, shipped: 0, completed: 0, cancelled: 0 },
+      };
+    },
+
+    updateOrderStatus: async (orderId: string | number, data: { status?: string; payment_status?: string; awb_number?: string; courier?: string; admin_notes?: string }) => {
+      const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    },
+
     saveProduct: async (product: Partial<Product>) => {
       const isEdit = !!product.id && !product.id.startsWith('new-') && !product.id.startsWith('p-');
       const url = isEdit ? `${API_BASE_URL}/admin/products/${product.id}` : `${API_BASE_URL}/admin/products`;
@@ -193,6 +326,7 @@ export const api = {
         stock: product.stock,
         category_id: product.categoryId,
         images: product.images,
+        variants: product.variants,
         is_active: true,
       };
 

@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { isAuthenticated, login } = useAuthStore();
+  const { isAuthenticated, user, login } = useAuthStore();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,10 +34,14 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (isAuthenticated) {
-      router.replace(ROUTES.ADMIN.DASHBOARD);
+    if (isAuthenticated && user) {
+      if (user.role === 'admin' || user.role === 'warehouse' || user.role === 'cs') {
+        router.replace(ROUTES.ADMIN.DASHBOARD);
+      } else {
+        router.replace(ROUTES.HOME);
+      }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +56,19 @@ export default function AdminLoginPage() {
       if (res && res.status === 'success' && res.data) {
         const userObj = res.data.user;
         const token = res.data.token;
+
+        if (userObj.role !== 'admin' && userObj.role !== 'warehouse' && userObj.role !== 'cs') {
+          toast.error('Akses Ditolak!', {
+            description: 'Akun Anda adalah Customer. Admin Panel hanya dapat diakses oleh Administrator.',
+          });
+          login(userObj, token);
+          router.push(ROUTES.HOME);
+          return;
+        }
+
         login(userObj, token);
         toast.success(`Selamat datang kembali, ${userObj.name || username}! 👋`, {
-          description: 'Login berhasil via Laravel Backend API.',
+          description: 'Login Administrator berhasil.',
         });
         router.push(ROUTES.ADMIN.DASHBOARD);
       } else {
@@ -69,7 +83,7 @@ export default function AdminLoginPage() {
         (username.trim().toLowerCase() === 'admin' && password === 'admin123') ||
         (username.trim() !== '' && password.trim() !== '')
       ) {
-        login(username.trim() || 'Admin');
+        login({ name: username.trim() || 'Admin', role: 'admin' });
         toast.success(`Selamat datang kembali, ${username || 'Admin'}! 👋`, {
           description: 'Masuk dalam mode offline/demo.',
         });
