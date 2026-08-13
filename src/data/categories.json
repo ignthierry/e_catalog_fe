@@ -1,0 +1,50 @@
+[
+  {
+    "id": "c1",
+    "name": "Edukasi & Logika",
+    "icon": "BrainCircuit",
+    "image": "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c2",
+    "name": "Action Figure & Robot",
+    "icon": "Bot",
+    "image": "https://images.unsplash.com/photo-1534951474654-87823058c4ea?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c3",
+    "name": "Mobil & Kendaraan",
+    "icon": "Car",
+    "image": "https://images.unsplash.com/photo-1594787317676-47b198c8c227?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c4",
+    "name": "Balok & LEGO",
+    "icon": "Blocks",
+    "image": "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c5",
+    "name": "Boneka & Plushie",
+    "icon": "Heart",
+    "image": "https://images.unsplash.com/photo-1559454403-b8fb88521f11?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c6",
+    "name": "Board Game & Kartu",
+    "icon": "Gamepad2",
+    "image": "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c7",
+    "name": "Outdoor & Olahraga",
+    "icon": "Bike",
+    "image": "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=400&q=80"
+  },
+  {
+    "id": "c8",
+    "name": "Seni & Kreasi",
+    "icon": "Palette",
+    "image": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=400&q=80"
+  }
+]

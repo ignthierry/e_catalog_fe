@@ -1,0 +1,16 @@
+[
+  {
+    "id": "b1",
+    "title": "Promo Back to School",
+    "subtitle": "Diskon hingga 50% untuk mainan edukasi",
+    "image": "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=80",
+    "link": "/products?category=c1"
+  },
+  {
+    "id": "b2",
+    "title": "Koleksi Terbaru!",
+    "subtitle": "Action Figure Marvel & DC",
+    "image": "https://images.unsplash.com/photo-1608889175123-8ee362201f81?auto=format&fit=crop&w=1600&q=80",
+    "link": "/products?category=c2"
+  }
+]

@@ -1,0 +1,130 @@
+[
+  {
+    "id": "p1",
+    "name": "Hot Wheels Track Builder Unlimited",
+    "description": "Bangun lintasan impianmu dengan set Hot Wheels ini. Termasuk 1 mobil die-cast.",
+    "price": 350000,
+    "originalPrice": 450000,
+    "images": [
+      "https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c3",
+    "isNew": true,
+    "stock": 15,
+    "variants": [
+      {
+        "id": "v1",
+        "name": "Warna",
+        "options": ["Biru", "Merah", "Kuning"]
+      }
+    ]
+  },
+  {
+    "id": "p2",
+    "name": "LEGO Classic Medium Creative Brick Box",
+    "description": "Tingkatkan kreativitas anak dengan balok LEGO klasik dalam berbagai warna cerah.",
+    "price": 599000,
+    "images": [
+      "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c4",
+    "stock": 8
+  },
+  {
+    "id": "p3",
+    "name": "Spider-Man Action Figure 12-inch",
+    "description": "Figur aksi Spider-Man ukuran 12 inci dengan artikulasi tinggi.",
+    "price": 250000,
+    "originalPrice": 299000,
+    "images": [
+      "https://images.unsplash.com/photo-1608889825103-eb5ed706fc64?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1608889175123-8ee362201f81?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c2",
+    "stock": 25
+  },
+  {
+    "id": "p4",
+    "name": "Rubik's Cube 3x3 Original",
+    "description": "Mainan teka-teki klasik untuk melatih logika dan kesabaran.",
+    "price": 120000,
+    "images": [
+      "https://images.unsplash.com/photo-1591991731833-b4807cf7ef94?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c1",
+    "stock": 50
+  },
+  {
+    "id": "p5",
+    "name": "Tomica Town Build City",
+    "description": "Set perkotaan Tomica lengkap dengan jalan dan bangunan.",
+    "price": 850000,
+    "originalPrice": 1000000,
+    "images": [
+      "https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c3",
+    "isNew": true,
+    "stock": 5
+  },
+  {
+    "id": "p6",
+    "name": "Play-Doh Modeling Compound 10-Pack",
+    "description": "10 kaleng lilin mainan Play-Doh untuk mengembangkan imajinasi anak.",
+    "price": 185000,
+    "images": [
+      "https://images.unsplash.com/photo-1618842676088-c4d48a6a7c9d?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c8",
+    "stock": 100
+  },
+  {
+    "id": "p7",
+    "name": "Teddy Bear Fluffy Plush 40cm",
+    "description": "Boneka beruang halus dan lembut dengan bahan hipoalergenik yang aman untuk balita.",
+    "price": 175000,
+    "originalPrice": 220000,
+    "images": [
+      "https://images.unsplash.com/photo-1559454403-b8fb88521f11?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c5",
+    "isNew": true,
+    "stock": 30
+  },
+  {
+    "id": "p8",
+    "name": "Monopoly Junior Board Game",
+    "description": "Permainan papan monopoli versi anak-anak untuk belajar berhitung dan strategi bisnis.",
+    "price": 299000,
+    "images": [
+      "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c6",
+    "stock": 20
+  },
+  {
+    "id": "p9",
+    "name": "Kids Balance Bike 12-inch",
+    "description": "Sepeda keseimbangan tanpa pedal untuk melatih motorik dan keseimbangan anak sebelum bersepeda roda dua.",
+    "price": 650000,
+    "originalPrice": 799000,
+    "images": [
+      "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c7",
+    "isNew": true,
+    "stock": 12
+  },
+  {
+    "id": "p10",
+    "name": "Deluxe Watercolor Art Painting Set",
+    "description": "Set cat air lengkap dengan kuas, palet, dan buku gambar tebal untuk seniman cilik.",
+    "price": 145000,
+    "images": [
+      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=800&q=80"
+    ],
+    "categoryId": "c8",
+    "stock": 45
+  }
+]
