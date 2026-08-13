@@ -43,7 +43,7 @@ export function ProductModal({
     } else {
       setName('');
       setDescription('');
-      setCategoryId(categories[0]?.id || 'c1');
+      setCategoryId(categories[0]?.id || '1');
       setPrice(150000);
       setOriginalPrice(undefined);
       setStock(20);

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Package, 
+  Grid,
   Image as ImageIcon, 
   Settings, 
   Store, 
@@ -70,6 +71,7 @@ export default function AdminLayout({
   const sidebarItems = [
     { name: 'Dashboard', href: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
     { name: 'Produk', href: ROUTES.ADMIN.PRODUCTS, icon: Package },
+    { name: 'Kategori', href: ROUTES.ADMIN.CATEGORIES, icon: Grid },
     { name: 'Banner Promo', href: ROUTES.ADMIN.BANNERS, icon: ImageIcon },
     { name: 'Pengaturan', href: ROUTES.ADMIN.SETTINGS, icon: Settings },
   ];

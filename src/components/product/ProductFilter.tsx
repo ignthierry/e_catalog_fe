@@ -62,7 +62,7 @@ export function ProductFilter({ categories, selectedCategory, onCategorySelect }
           
           {/* List Categories */}
           {categories.map((category) => {
-            const Icon = iconMap[category.icon] || LayoutGrid;
+            const Icon = (category.icon && iconMap[category.icon]) || LayoutGrid;
             const isSelected = selectedCategory === category.id;
 
             return (

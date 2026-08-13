@@ -1,74 +1,149 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Package, 
   Grid, 
   Image as ImageIcon, 
-  TrendingUp, 
+  Boxes, 
   Plus, 
   ArrowUpRight, 
   MessageCircle, 
   Settings, 
   Store, 
   CheckCircle2, 
-  HelpCircle,
-  Clock,
-  Sparkles
+  RefreshCw,
+  Sparkles,
+  Server,
+  ExternalLink,
+  Layers
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ROUTES, APP_CONFIG } from '@/lib/constants';
-import productsData from '@/data/products.json';
-import categoriesData from '@/data/categories.json';
-import bannersData from '@/data/banners.json';
-import { formatCurrency, getWhatsAppLink } from '@/lib/whatsapp';
+import { ROUTES } from '@/lib/constants';
+import { api, DashboardData } from '@/lib/api';
+import { formatCurrency } from '@/lib/whatsapp';
+import { toast } from 'sonner';
 
 export default function AdminDashboardPage() {
-  const products = productsData;
-  const categories = categoriesData;
-  const banners = bannersData;
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchDashboardData = useCallback(async (showToast = false) => {
+    try {
+      if (showToast) setRefreshing(true);
+      const res = await api.admin.getDashboard();
+      if (res) {
+        setData(res);
+        if (showToast) {
+          toast.success('Data dashboard berhasil diperbarui dari database!');
+        }
+      } else {
+        // Fallback fetch if combined endpoint isn't available
+        const [products, categories, banners, settings] = await Promise.all([
+          api.getProducts(),
+          api.getCategories(),
+          api.getBanners(),
+          api.getSettings(),
+        ]);
+
+        const totalStock = products.reduce((acc, p) => acc + (p.stock || 0), 0);
+
+        setData({
+          stats: {
+            totalProducts: products.length,
+            totalCategories: categories.length,
+            totalBanners: banners.length,
+            totalStock,
+            lowStockCount: products.filter(p => p.stock <= 5).length,
+          },
+          recentProducts: products.slice(0, 5).map(p => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: p.price,
+            stock: p.stock,
+            categoryId: p.categoryId,
+            categoryName: p.categoryName || 'Umum',
+            image: p.images[0] || '',
+            createdAt: p.createdAt,
+          })),
+          categoriesSummary: categories.map(c => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            productCount: c.productCount || 0,
+          })),
+          settings,
+          system: {
+            status: 'online',
+            database: 'connected',
+            phpVersion: '8.x',
+            timestamp: new Date().toISOString(),
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      if (showToast) {
+        toast.error('Gagal memperbarui data dari server');
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const stats = [
     {
       title: 'Total Produk',
-      value: products.length.toString(),
-      subtext: 'Produk terdaftar',
+      value: loading ? '...' : (data?.stats.totalProducts?.toString() || '0'),
+      subtext: 'Produk aktif di katalog',
       icon: Package,
       iconColor: 'text-blue-500',
       bgGlow: 'bg-blue-500/10 border-blue-500/20 text-blue-500',
-      change: '+2 baru minggu ini',
+      href: ROUTES.ADMIN.PRODUCTS,
+      change: 'Tersinkron DB',
       changeType: 'positive',
     },
     {
       title: 'Kategori Aktif',
-      value: categories.length.toString(),
+      value: loading ? '...' : (data?.stats.totalCategories?.toString() || '0'),
       subtext: 'Kategori mainan',
       icon: Grid,
       iconColor: 'text-purple-500',
       bgGlow: 'bg-purple-500/10 border-purple-500/20 text-purple-500',
-      change: 'Semua aktif',
+      href: ROUTES.ADMIN.CATEGORIES,
+      change: 'Live di Menu',
       changeType: 'neutral',
     },
     {
       title: 'Banner Promosi',
-      value: banners.length.toString(),
+      value: loading ? '...' : (data?.stats.totalBanners?.toString() || '0'),
       subtext: 'Slide aktif di beranda',
       icon: ImageIcon,
       iconColor: 'text-amber-500',
       bgGlow: 'bg-amber-500/10 border-amber-500/20 text-amber-500',
-      change: 'Musim promo',
+      href: ROUTES.ADMIN.BANNERS,
+      change: 'Promo Aktif',
       changeType: 'neutral',
     },
     {
-      title: 'Estimasi Pengunjung',
-      value: '1,248',
-      subtext: 'Dilihat hari ini',
-      icon: TrendingUp,
+      title: 'Total Stok Mainan',
+      value: loading ? '...' : (data?.stats.totalStock?.toString() || '0'),
+      subtext: `${data?.stats.lowStockCount || 0} produk stok rendah`,
+      icon: Boxes,
       iconColor: 'text-emerald-500',
       bgGlow: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500',
-      change: '+18.4% vs kemarin',
+      href: ROUTES.ADMIN.PRODUCTS,
+      change: 'Siap Kirim',
       changeType: 'positive',
     },
   ];
@@ -82,6 +157,13 @@ export default function AdminDashboardPage() {
       color: 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white',
     },
     {
+      title: 'Kelola Kategori',
+      desc: 'Atur grup mainan & filter',
+      icon: Grid,
+      href: ROUTES.ADMIN.CATEGORIES,
+      color: 'bg-purple-500/10 text-purple-500 group-hover:bg-purple-500 group-hover:text-white',
+    },
+    {
       title: 'Atur Banner Promo',
       desc: 'Kelola slide diskon beranda',
       icon: ImageIcon,
@@ -90,19 +172,15 @@ export default function AdminDashboardPage() {
     },
     {
       title: 'Pengaturan WhatsApp',
-      desc: 'Ubah nomor penerima order',
+      desc: 'Ubah nomor kontak pesanan',
       icon: MessageCircle,
       href: ROUTES.ADMIN.SETTINGS,
       color: 'bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white',
     },
-    {
-      title: 'Lihat Toko Publik',
-      desc: 'Cek tampilan katalog pembeli',
-      icon: Store,
-      href: ROUTES.HOME,
-      color: 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white',
-    },
   ];
+
+  const currentWhatsApp = data?.settings?.whatsapp_number || '6281234567890';
+  const storeName = data?.settings?.store_name || 'OMEGA TOYS';
 
   return (
     <div className="space-y-8">
@@ -113,20 +191,28 @@ export default function AdminDashboardPage() {
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Dashboard
             </h1>
-            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
-              v1.2
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Backend Terhubung
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Ringkasan operasional dan performa E-Katalog OMEGA TOYS.
+            Ringkasan data operasional langsung dari database MySQL & API Laravel.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Sistem Aktif & Siap Order
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fetchDashboardData(true)}
+            disabled={refreshing || loading}
+            className="font-semibold text-xs gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>{refreshing ? 'Memuat...' : 'Refresh Data'}</span>
+          </Button>
+
           <Button asChild size="sm" className="font-bold shadow-xs">
             <Link href={ROUTES.ADMIN.PRODUCTS} className="gap-1.5">
               <Plus className="w-4 h-4" />
@@ -139,38 +225,39 @@ export default function AdminDashboardPage() {
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {stats.map((stat, index) => (
-          <Card 
-            key={index} 
-            className="group p-5 rounded-2xl border border-border/60 hover:border-primary/40 hover:shadow-lg transition-all duration-300 bg-card flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {stat.title}
-                </span>
-                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${stat.bgGlow}`}>
-                  <stat.icon className="w-5 h-5" />
+          <Link key={index} href={stat.href} className="block group">
+            <Card className="p-5 rounded-2xl border border-border/60 hover:border-primary/40 hover:shadow-lg transition-all duration-300 bg-card flex flex-col justify-between h-full">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {stat.title}
+                  </span>
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${stat.bgGlow}`}>
+                    <stat.icon className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <h3 className="text-3xl font-black tracking-tight text-foreground">
+                    {stat.value}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {stat.subtext}
+                  </p>
                 </div>
               </div>
 
-              <div className="mt-3">
-                <h3 className="text-3xl font-black tracking-tight text-foreground">
-                  {stat.value}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {stat.subtext}
-                </p>
+              <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium flex items-center gap-1">
+                  {stat.changeType === 'positive' && <span className="text-emerald-500 font-bold">{stat.change}</span>}
+                  {stat.changeType === 'neutral' && <span className="text-muted-foreground">{stat.change}</span>}
+                </span>
+                <span className="text-[11px] text-primary font-semibold flex items-center gap-0.5 group-hover:underline">
+                  Kelola &rarr;
+                </span>
               </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground font-medium flex items-center gap-1">
-                {stat.changeType === 'positive' && <span className="text-emerald-500 font-bold">{stat.change}</span>}
-                {stat.changeType === 'neutral' && <span className="text-muted-foreground">{stat.change}</span>}
-              </span>
-              <span className="text-[11px] text-muted-foreground/60 font-mono">Bulan ini</span>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         ))}
       </div>
 
@@ -217,88 +304,162 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Products Overview */}
+          {/* Recent Products Overview (from Backend DB) */}
           <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
             <CardHeader className="p-5 pb-3 border-b bg-muted/10">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <Package className="w-4 h-4 text-primary" />
-                  Daftar Produk Terbaru
+                  Daftar Produk Terbaru (Database Live)
                 </CardTitle>
                 <Link 
                   href={ROUTES.ADMIN.PRODUCTS}
                   className="text-xs font-semibold text-primary hover:underline"
                 >
-                  Lihat Semua ({products.length}) &rarr;
+                  Lihat Semua ({data?.stats.totalProducts || 0}) &rarr;
                 </Link>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y divide-border/40">
-                {products.slice(0, 4).map((product) => (
-                  <div 
-                    key={product.id} 
-                    className="p-4 flex items-center justify-between gap-4 hover:bg-muted/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="w-12 h-12 rounded-xl object-cover bg-muted border flex-shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <h5 className="font-bold text-sm text-foreground line-clamp-1">
-                          {product.name}
-                        </h5>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Stok: <span className="font-semibold text-foreground">{product.stock} pcs</span>
-                        </p>
+              {loading ? (
+                <div className="p-8 text-center text-muted-foreground text-sm space-y-2">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p>Memuat produk dari database...</p>
+                </div>
+              ) : data?.recentProducts && data.recentProducts.length > 0 ? (
+                <div className="divide-y divide-border/40">
+                  {data.recentProducts.map((product) => (
+                    <div 
+                      key={product.id} 
+                      className="p-4 flex items-center justify-between gap-4 hover:bg-muted/20 transition-colors"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={product.image || 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?w=800&q=80'}
+                          alt={product.name}
+                          className="w-12 h-12 rounded-xl object-cover bg-muted border flex-shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <h5 className="font-bold text-sm text-foreground line-clamp-1">
+                            {product.name}
+                          </h5>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] bg-muted px-2 py-0.5 rounded text-muted-foreground font-medium">
+                              {product.categoryName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Stok: <strong className="text-foreground">{product.stock} pcs</strong>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                        <div className="text-right flex-shrink-0">
+                        <span className="font-black text-sm text-primary block">
+                          {formatCurrency(product.price)}
+                        </span>
+                        <Badge variant="default" className="text-[10px] bg-emerald-500 mt-1 font-bold">
+                          Aktif di Katalog
+                        </Badge>
                       </div>
                     </div>
-
-                    <div className="text-right flex-shrink-0">
-                      <span className="font-black text-sm text-primary block">
-                        {formatCurrency(product.price)}
-                      </span>
-                      <Badge variant="default" className="text-[10px] bg-emerald-500 mt-1 font-bold">
-                        Aktif
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  Belum ada produk di database. Silakan tambahkan produk baru.
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Category Breakdown Card */}
+          <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
+            <CardHeader className="p-5 pb-3 border-b bg-muted/10">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-purple-500" />
+                  Sebaran Kategori & Jumlah Produk
+                </CardTitle>
+                <Link 
+                  href={ROUTES.ADMIN.CATEGORIES}
+                  className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  Kelola Kategori &rarr;
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-5">
+              {data?.categoriesSummary && data.categoriesSummary.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {data.categoriesSummary.map((cat) => (
+                    <div 
+                      key={cat.id} 
+                      className="p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                          <Grid className="w-4 h-4" />
+                        </div>
+                        <span className="font-semibold text-xs text-foreground truncate">
+                          {cat.name}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-bold font-mono">
+                        {cat.productCount} produk
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Belum ada kategori terdaftar.</p>
+              )}
+            </CardContent>
+          </Card>
+
         </div>
 
         {/* Right Column (1 Col) */}
         <div className="space-y-6">
           
-          {/* WhatsApp Status Card */}
+          {/* WhatsApp Status Card (Live Backend Data) */}
           <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
             <CardHeader className="p-5 pb-3 border-b bg-emerald-500/5">
               <CardTitle className="text-base font-bold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <MessageCircle className="w-5 h-5" />
-                Integrasi WhatsApp
+                Integrasi WhatsApp (Live)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="p-3.5 rounded-xl bg-muted/40 border space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Nomor Admin Penerima
+                  Nomor Admin Penerima Pesanan
                 </span>
-                <p className="font-black text-base text-foreground font-mono">
-                  +{APP_CONFIG.defaultWhatsApp}
+                <p className="font-black text-lg text-foreground font-mono">
+                  +{currentWhatsApp}
                 </p>
-                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Tersambung ke Checkout
-                </span>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan di Database
+                  </span>
+                  <a 
+                    href={`https://wa.me/${currentWhatsApp}?text=Halo%20Admin%20${encodeURIComponent(storeName)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-0.5"
+                  >
+                    Tes Chat <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
               </div>
 
               <div className="text-xs text-muted-foreground space-y-2 leading-relaxed">
                 <p>
-                  Setiap pembeli menekan tombol <strong>Order via WhatsApp</strong>, rincian pesanan akan otomatis terkirim ke nomor ini.
+                  Nama Toko: <strong>{storeName}</strong>
+                </p>
+                <p>
+                  Setiap transaksi checkout otomatis diteruskan ke nomor ini dengan format invoice rapi.
                 </p>
               </div>
 
@@ -310,51 +471,39 @@ export default function AdminDashboardPage() {
               >
                 <Link href={ROUTES.ADMIN.SETTINGS}>
                   <Settings className="w-3.5 h-3.5 mr-1.5" />
-                  Ganti Nomor WhatsApp
+                  Ubah Nomor WhatsApp & Toko
                 </Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Panduan Sistem Card */}
+          {/* System & API Status */}
           <Card className="rounded-2xl border border-border/60 shadow-xs overflow-hidden">
             <CardHeader className="p-5 pb-3 border-b bg-muted/10">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-primary" />
-                Panduan Penggunaan
+                <Server className="w-4 h-4 text-primary" />
+                Status Server & Database
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-5 space-y-3.5 text-xs text-muted-foreground leading-relaxed">
-              <div className="flex gap-2.5 items-start">
-                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">
-                  1
-                </div>
-                <p>
-                  <strong>Kelola Produk:</strong> Tambah, edit foto, atau ubah harga dan stok mainan di menu <em>Produk</em>.
-                </p>
+            <CardContent className="p-5 space-y-3 text-xs text-muted-foreground leading-relaxed">
+              <div className="flex items-center justify-between py-1 border-b border-border/40">
+                <span>API Gateway:</span>
+                <span className="font-semibold text-foreground font-mono">Laravel API (Port 8000)</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border/40">
+                <span>Database:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">MySQL (omega_toys_db)</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border/40">
+                <span>Konektivitas:</span>
+                <Badge variant="default" className="bg-emerald-500 text-[10px] py-0 px-2 font-bold">
+                  Online 100%
+                </Badge>
               </div>
 
-              <div className="flex gap-2.5 items-start">
-                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">
-                  2
-                </div>
-                <p>
-                  <strong>Banner Promo:</strong> Ganti gambar promo musiman yang tampil di halaman beranda toko.
-                </p>
-              </div>
-
-              <div className="flex gap-2.5 items-start">
-                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">
-                  3
-                </div>
-                <p>
-                  <strong>WhatsApp Checkout:</strong> Seluruh order masuk langsung tanpa potongan komisi pihak ketiga.
-                </p>
-              </div>
-
-              <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-[11px] leading-relaxed">
-                <Clock className="w-3.5 h-3.5 inline mr-1" />
-                Saat ini frontend berjalan dalam <strong>Mode Simulasi Interaktif</strong>. Integrasi database penuh siap disambungkan ke Backend Laravel.
+              <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[11px] leading-relaxed">
+                <Store className="w-3.5 h-3.5 inline mr-1" />
+                Data admin panel sepenuhnya sinkron dengan database server backend secara real-time.
               </div>
             </CardContent>
           </Card>

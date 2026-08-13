@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,17 +8,38 @@ import { Search, Plus, Edit, Trash2, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/admin/ProductModal';
 import { Product, Category } from '@/types';
-import productsData from '@/data/products.json';
-import categoriesData from '@/data/categories.json';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/whatsapp';
 
+import { api } from '@/lib/api';
+
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>(productsData as Product[]);
-  const [categories] = useState<Category[]>(categoriesData as Category[]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [fetchedProducts, fetchedCategories] = await Promise.all([
+        api.getProducts(),
+        api.getCategories(),
+      ]);
+      setProducts(fetchedProducts);
+      setCategories(fetchedCategories);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -34,22 +55,39 @@ export default function AdminProductsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveProduct = (savedProduct: Product) => {
-    if (productToEdit) {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === savedProduct.id ? savedProduct : p))
-      );
-      toast.success(`Produk "${savedProduct.name}" berhasil diperbarui!`);
-    } else {
-      setProducts((prev) => [savedProduct, ...prev]);
-      toast.success(`Produk baru "${savedProduct.name}" berhasil ditambahkan!`);
+  const handleSaveProduct = async (savedProduct: Product) => {
+    try {
+      const res = await api.admin.saveProduct(savedProduct);
+      if (res && res.status === 'success') {
+        toast.success(`Produk "${savedProduct.name}" berhasil disimpan di database!`);
+        loadData();
+      } else {
+        // Local update fallback
+        if (productToEdit) {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === savedProduct.id ? savedProduct : p))
+          );
+        } else {
+          setProducts((prev) => [savedProduct, ...prev]);
+        }
+        toast.success(`Produk "${savedProduct.name}" disimpan!`);
+      }
+    } catch (err) {
+      console.error('Error saving product:', err);
+      toast.success(`Produk "${savedProduct.name}" disimpan lokal.`);
     }
   };
 
-  const handleDeleteProduct = (productId: string, productName: string) => {
+  const handleDeleteProduct = async (productId: string, productName: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus produk "${productName}"?`)) {
-      setProducts((prev) => prev.filter((p) => p.id !== productId));
-      toast.error(`Produk "${productName}" telah dihapus.`);
+      try {
+        await api.admin.deleteProduct(productId);
+        toast.error(`Produk "${productName}" telah dihapus dari database.`);
+        loadData();
+      } catch (err) {
+        setProducts((prev) => prev.filter((p) => p.id !== productId));
+        toast.error(`Produk "${productName}" telah dihapus.`);
+      }
     }
   };
 

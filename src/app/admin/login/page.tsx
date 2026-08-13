@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ROUTES, APP_CONFIG } from '@/lib/constants';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function AdminLoginPage() {
@@ -38,28 +39,49 @@ export default function AdminLoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      // Demo validation: admin / admin123
+    try {
+      const res = await api.admin.login({
+        username: username.trim(),
+        password,
+      });
+
+      if (res && res.status === 'success' && res.data) {
+        const userObj = res.data.user;
+        const token = res.data.token;
+        login(userObj, token);
+        toast.success(`Selamat datang kembali, ${userObj.name || username}! 👋`, {
+          description: 'Login berhasil via Laravel Backend API.',
+        });
+        router.push(ROUTES.ADMIN.DASHBOARD);
+      } else {
+        toast.error('Gagal Masuk!', {
+          description: res?.message || 'Username atau kata sandi tidak cocok di database.',
+        });
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      // Fallback for demo
       if (
         (username.trim().toLowerCase() === 'admin' && password === 'admin123') ||
         (username.trim() !== '' && password.trim() !== '')
       ) {
-        login(username.trim() || 'admin');
+        login(username.trim() || 'Admin');
         toast.success(`Selamat datang kembali, ${username || 'Admin'}! 👋`, {
-          description: 'Anda telah berhasil masuk ke Admin Panel OMEGA TOYS.',
+          description: 'Masuk dalam mode offline/demo.',
         });
         router.push(ROUTES.ADMIN.DASHBOARD);
       } else {
-        toast.error('Kredensial login tidak valid!', {
-          description: 'Gunakan username: "admin" dan password: "admin123"',
+        toast.error('Koneksi ke backend gagal!', {
+          description: 'Pastikan server Laravel berjalan di port 8000.',
         });
-        setIsLoading(false);
       }
-    }, 600);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUseDemo = () => {

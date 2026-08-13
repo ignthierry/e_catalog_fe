@@ -101,7 +101,7 @@ export function CategoryGrid() {
       {/* Compact Elongated Horizontal Pills (2 rows on mobile, flexible wrap on desktop) */}
       <div className="grid grid-rows-2 grid-flow-col auto-cols-max sm:flex sm:flex-wrap gap-2.5 overflow-x-auto pb-2 pt-0.5 px-1 hide-scrollbar snap-x">
         {categories.map((category) => {
-          const Icon = iconMap[category.icon] || LayoutGrid;
+          const Icon = (category.icon && iconMap[category.icon]) || LayoutGrid;
           const accentColor = colorAccents[category.id] || 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white';
           
           return (
