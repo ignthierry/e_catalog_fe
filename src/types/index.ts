@@ -116,3 +116,41 @@ export interface OrderCounts {
   completed: number;
   cancelled: number;
 }
+
+export interface ActivityLog {
+  id: number | string;
+  user_id?: number | string | null;
+  user_name: string;
+  user_email?: string | null;
+  user_role: string;
+  action: string;
+  description: string;
+  ip_address: string;
+  user_agent?: string | null;
+  device: string;
+  properties?: Record<string, any> | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ActivityLogStats {
+  total: number;
+  today: number;
+  todayLogins: number;
+  uniqueIps: number;
+}
+
+export interface ActivityLogsResponse {
+  status?: string;
+  message?: string;
+  data: ActivityLog[];
+  pagination: {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+    hasMorePages: boolean;
+  };
+  stats: ActivityLogStats;
+  availableActions: string[];
+}

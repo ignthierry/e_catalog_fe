@@ -30,5 +30,6 @@ export const ROUTES = {
     CATEGORIES: "/admin/categories",
     BANNERS: "/admin/banners",
     SETTINGS: "/admin/settings",
+    ACTIVITY_LOGS: "/admin/activity-logs",
   },
 };

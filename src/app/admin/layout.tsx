@@ -14,7 +14,8 @@ import {
   LogOut, 
   User,
   ShieldCheck,
-  ShoppingBag
+  ShoppingBag,
+  History
 } from 'lucide-react';
 import { ROUTES, APP_CONFIG } from '@/lib/constants';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -113,6 +114,7 @@ export default function AdminLayout({
     { name: 'Produk', href: ROUTES.ADMIN.PRODUCTS, icon: Package },
     { name: 'Kategori', href: ROUTES.ADMIN.CATEGORIES, icon: Grid },
     { name: 'Banner Promo', href: ROUTES.ADMIN.BANNERS, icon: ImageIcon },
+    { name: 'Log Aktivitas', href: ROUTES.ADMIN.ACTIVITY_LOGS, icon: History },
     { name: 'Pengaturan', href: ROUTES.ADMIN.SETTINGS, icon: Settings },
   ];
 

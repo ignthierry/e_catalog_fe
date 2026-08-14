@@ -1,29 +1,56 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, CheckCircle2, QrCode, Building2, Truck, 
-  CreditCard, ShieldCheck, Copy, Check, Loader2, Sparkles, AlertCircle, ShoppingBag
+  ShoppingBag, 
+  ArrowLeft, 
+  CheckCircle2, 
+  Truck, 
+  QrCode, 
+  Building2, 
+  Copy, 
+  ShieldCheck, 
+  Lock, 
+  Image as ImageIcon,
+  Check,
+  AlertCircle,
+  LogIn,
+  MapPin,
+  Loader2,
+  Search,
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { APP_CONFIG, ROUTES } from '@/lib/constants';
 import { formatCurrency } from '@/lib/whatsapp';
+import { ROUTES, APP_CONFIG } from '@/lib/constants';
+import { api } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card, CardContent } from '@/components/ui/Card';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
-const COURIER_OPTIONS = [
-  { id: 'jne_reg', name: 'JNE Reguler (2-3 Hari)', cost: 18000 },
-  { id: 'jnt_ez', name: 'J&T Express (1-2 Hari)', cost: 18000 },
-  { id: 'sicepat_best', name: 'SiCepat BEST (1 Hari)', cost: 24000 },
-  { id: 'gosend', name: 'GoSend / Grab Instant (Hari Ini)', cost: 35000 },
+export interface CourierRateOption {
+  id: string;
+  code: string;
+  courierName: string;
+  service: string;
+  description: string;
+  cost: number;
+  etd: string;
+  name: string;
+}
+
+const DEFAULT_FALLBACK_COURIERS: CourierRateOption[] = [
+  { id: 'jne_reg', code: 'jne', courierName: 'JNE', service: 'REG', description: 'Layanan Reguler', cost: 18000, etd: '2-3 Hari', name: 'JNE Reguler (2-3 Hari)' },
+  { id: 'jnt_ez', code: 'jnt', courierName: 'J&T Express', service: 'EZ', description: 'Reguler', cost: 18000, etd: '1-2 Hari', name: 'J&T Express (1-2 Hari)' },
+  { id: 'sicepat_best', code: 'sicepat', courierName: 'SiCepat', service: 'BEST', description: 'Besok Sampai Tujuan', cost: 24000, etd: '1 Hari', name: 'SiCepat BEST (1 Hari)' },
+  { id: 'pos_reg', code: 'pos', courierName: 'POS Indonesia', service: 'Pos Reguler', description: 'Reguler', cost: 15000, etd: '2-3 Hari', name: 'POS Indonesia Reguler (2-3 Hari)' },
 ];
 
 export default function CheckoutPage() {
@@ -40,11 +67,37 @@ export default function CheckoutPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [shippingAddress, setShippingAddress] = useState('');
+  const [shippingDetail, setShippingDetail] = useState('');
   const [notes, setNotes] = useState('');
-  
-  // Shipping & Payment
-  const [selectedCourier, setSelectedCourier] = useState(COURIER_OPTIONS[0]);
+
+  // RajaOngkir Dynamic Destination & Couriers
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [destinationResults, setDestinationResults] = useState<Array<{
+    id: number;
+    label: string;
+    subdistrict: string;
+    city: string;
+    province: string;
+    zipCode: string;
+  }>>([]);
+  const [selectedDestination, setSelectedDestination] = useState<{
+    id: number;
+    label: string;
+    subdistrict: string;
+    city: string;
+    province: string;
+    zipCode: string;
+  } | null>(null);
+  const [isSearchingDestinations, setIsSearchingDestinations] = useState(false);
+  const [showDestinationDropdown, setShowDestinationDropdown] = useState(false);
+  const destinationDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Couriers list
+  const [courierOptions, setCourierOptions] = useState<CourierRateOption[]>(DEFAULT_FALLBACK_COURIERS);
+  const [selectedCourier, setSelectedCourier] = useState<CourierRateOption>(DEFAULT_FALLBACK_COURIERS[0]);
+  const [isLoadingCouriers, setIsLoadingCouriers] = useState(false);
+
+  // Payment
   const [paymentMethod, setPaymentMethod] = useState<'QRIS' | 'Transfer Bank'>('QRIS');
   const [selectedBank, setSelectedBank] = useState(APP_CONFIG.bankAccounts[0]);
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
@@ -63,6 +116,85 @@ export default function CheckoutPage() {
       if (user.phoneNumber) setCustomerPhone(user.phoneNumber);
     }
   }, [user]);
+
+  // Close destination dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        destinationDropdownRef.current &&
+        !destinationDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDestinationDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced search for RajaOngkir destinations
+  useEffect(() => {
+    if (!destinationQuery || destinationQuery.trim().length < 2) {
+      setDestinationResults([]);
+      return;
+    }
+
+    if (selectedDestination && destinationQuery === selectedDestination.label) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingDestinations(true);
+      try {
+        const results = await api.shipping.searchDestinations(destinationQuery);
+        setDestinationResults(results);
+        setShowDestinationDropdown(true);
+      } catch (err) {
+        console.error('Failed to search destinations:', err);
+      } finally {
+        setIsSearchingDestinations(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [destinationQuery, selectedDestination]);
+
+  // Calculate live shipping cost when destination changes
+  const handleSelectDestination = async (dest: {
+    id: number;
+    label: string;
+    subdistrict: string;
+    city: string;
+    province: string;
+    zipCode: string;
+  }) => {
+    setSelectedDestination(dest);
+    setDestinationQuery(dest.label);
+    setShowDestinationDropdown(false);
+
+    // Calculate approximate weight (default 1000g per order, or 500g per item)
+    const calculatedWeight = Math.max(items.reduce((acc, it) => acc + (it.quantity * 500), 0), 1000);
+
+    setIsLoadingCouriers(true);
+    toast.loading('Menghitung tarif ongkir resmi RajaOngkir...', { id: 'calc-shipping' });
+
+    try {
+      const rates = await api.shipping.calculateCost(dest.id, calculatedWeight);
+      if (rates && rates.length > 0) {
+        setCourierOptions(rates);
+        setSelectedCourier(rates[0]); // Default to cheapest
+        toast.success(`Ditemukan ${rates.length} pilihan kurir pengiriman!`, { id: 'calc-shipping' });
+      } else {
+        toast.dismiss('calc-shipping');
+        setCourierOptions(DEFAULT_FALLBACK_COURIERS);
+        setSelectedCourier(DEFAULT_FALLBACK_COURIERS[0]);
+      }
+    } catch (err) {
+      console.error('Failed to calculate shipping rates:', err);
+      toast.dismiss('calc-shipping');
+    } finally {
+      setIsLoadingCouriers(false);
+    }
+  };
 
   if (!mounted) {
     return <div className="container mx-auto px-4 py-16 min-h-[60vh]"></div>;
@@ -107,10 +239,14 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!customerName.trim() || !customerPhone.trim() || !shippingAddress.trim()) {
-      toast.error('Mohon lengkapi Nama Penerima, Nomor WhatsApp, dan Alamat Pengiriman');
+    if (!customerName.trim() || !customerPhone.trim() || !shippingDetail.trim()) {
+      toast.error('Mohon lengkapi Nama Penerima, Nomor WhatsApp, dan Detail Alamat');
       return;
     }
+
+    const fullAddress = selectedDestination
+      ? `${shippingDetail.trim()} — [${selectedDestination.label}]`
+      : shippingDetail.trim();
 
     try {
       setIsSubmitting(true);
@@ -119,7 +255,7 @@ export default function CheckoutPage() {
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_email: customerEmail || undefined,
-        shipping_address: shippingAddress,
+        shipping_address: fullAddress,
         courier: selectedCourier.name,
         shipping_cost: shippingCost,
         payment_method: paymentMethod,
@@ -138,15 +274,19 @@ export default function CheckoutPage() {
         const createdOrder = res.data;
         clearCart();
         toast.success('Pesanan Berhasil Dibuat!', {
-          description: `Nomor Invoice: ${createdOrder.orderNumber}`,
+          description: `Nomor Pesanan: ${createdOrder.orderNumber}`,
         });
-        router.push(`${ROUTES.ORDERS}/${createdOrder.orderNumber}`);
+        router.push(`${ROUTES.ORDERS}/${createdOrder.id}`);
       } else {
-        toast.error(res?.message || 'Gagal memproses pesanan');
+        toast.error('Gagal membuat pesanan', {
+          description: res?.message || 'Terjadi kesalahan sistem, silakan coba lagi.',
+        });
       }
-    } catch (err: any) {
-      console.error('Order creation error:', err);
-      toast.error('Gagal membuat pesanan. Silakan coba kembali.');
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      toast.error('Gagal terhubung ke server', {
+        description: 'Pastikan koneksi internet Anda stabil.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -167,7 +307,7 @@ export default function CheckoutPage() {
             Checkout Pesanan
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Lengkapi alamat dan pilih metode pembayaran (QRIS / Transfer Bank).
+            Tarif ongkir otomatis real-time via RajaOngkir & metode pembayaran resmi.
           </p>
         </div>
       </div>
@@ -203,15 +343,21 @@ export default function CheckoutPage() {
       <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Form: Data Pengiriman & Pembayaran */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Section 1: Alamat Pengiriman */}
+          {/* Section 1: Alamat Pengiriman & RajaOngkir */}
           <Card className="rounded-3xl border shadow-xs overflow-hidden">
-            <div className="p-5 border-b bg-muted/20 flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                1
+            <div className="p-5 border-b bg-muted/20 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                  1
+                </div>
+                <h2 className="font-extrabold text-base text-foreground">
+                  Informasi Penerima & Ongkir RajaOngkir
+                </h2>
               </div>
-              <h2 className="font-extrabold text-base text-foreground">
-                Informasi Penerima & Alamat Kirim
-              </h2>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                Live RajaOngkir API
+              </span>
             </div>
 
             <CardContent className="p-5 sm:p-6 space-y-4">
@@ -257,44 +403,133 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              {/* RajaOngkir Destination Autocomplete */}
+              <div className="space-y-1.5 relative" ref={destinationDropdownRef}>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    Kecamatan / Kota Tujuan <span className="text-destructive">*</span>
+                  </span>
+                  {selectedDestination && (
+                    <span className="text-[10px] text-emerald-500 font-bold">
+                      ✓ Terhubung: {selectedDestination.subdistrict || selectedDestination.city}
+                    </span>
+                  )}
+                </label>
+
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
+                    {isSearchingDestinations ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ketik nama Kecamatan atau Kota (contoh: Grogol, Bandung, Kebayoran, Surabaya)..."
+                    value={destinationQuery}
+                    onChange={(e) => {
+                      setDestinationQuery(e.target.value);
+                      if (selectedDestination && e.target.value !== selectedDestination.label) {
+                        setSelectedDestination(null);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (destinationResults.length > 0) setShowDestinationDropdown(true);
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+                  />
+                </div>
+
+                {/* Dropdown Suggestions */}
+                {showDestinationDropdown && destinationResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto bg-card border border-border rounded-2xl shadow-xl divide-y divide-border/60 animate-in fade-in-50 zoom-in-95 duration-150">
+                    {destinationResults.map((dest) => (
+                      <button
+                        key={dest.id}
+                        type="button"
+                        onClick={() => handleSelectDestination(dest)}
+                        className="w-full text-left p-3 hover:bg-muted/40 transition-colors flex items-start gap-2.5 cursor-pointer text-xs"
+                      >
+                        <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-foreground leading-tight">
+                            {dest.subdistrict ? `${dest.subdistrict}, ` : ''}{dest.city}, {dest.province}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {dest.subdistrict ? `Kec. ${dest.subdistrict} • ` : ''}Kode Pos: {dest.zipCode || '-'}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Detail Alamat Lengkap */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Alamat Lengkap Pengiriman <span className="text-destructive">*</span>
+                  Detail Alamat Lengkap <span className="text-destructive">*</span>
                 </label>
                 <textarea
                   required
-                  rows={3}
-                  placeholder="Jalan, No. Rumah, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Kode Pos"
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  rows={2}
+                  placeholder="Nama Jalan, Nomor Bangunan/Rumah, RT/RW, Blok, Patokan, dll."
+                  value={shippingDetail}
+                  onChange={(e) => setShippingDetail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
                 />
               </div>
 
-              {/* Kurir Pilihan */}
+              {/* Kurir Ekspedisi Live */}
               <div className="space-y-2 pt-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-primary" /> Pilih Kurir Ekspedisi
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-primary" /> Pilihan Ekspedisi & Tarif Real-Time
+                  </label>
+                  {isLoadingCouriers && (
+                    <span className="text-[11px] text-primary flex items-center gap-1 font-bold">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Memuat tarif...
+                    </span>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {COURIER_OPTIONS.map((c) => (
+                  {courierOptions.map((c) => (
                     <div
                       key={c.id}
                       onClick={() => setSelectedCourier(c)}
-                      className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                      className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                         selectedCourier.id === c.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/40 shadow-xs'
                           : 'border-border hover:border-primary/40 bg-card'
                       }`}
                     >
-                      <div>
-                        <p className="text-xs font-bold text-foreground">{c.name}</p>
-                        <p className="text-xs font-extrabold text-primary mt-0.5">
+                      <div className="min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                            {c.code.toUpperCase()}
+                          </span>
+                          <p className="text-xs font-bold text-foreground truncate">
+                            {c.service} ({c.etd})
+                          </p>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                          {c.courierName} • {c.description}
+                        </p>
+                        <p className="text-xs font-extrabold text-primary mt-1">
                           {formatCurrency(c.cost)}
                         </p>
                       </div>
-                      {selectedCourier.id === c.id && (
-                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+
+                      {selectedCourier.id === c.id ? (
+                        <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                          <Check className="w-3.5 h-3.5" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full border border-border flex-shrink-0" />
                       )}
                     </div>
                   ))}

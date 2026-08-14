@@ -3,15 +3,24 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Grid, ShoppingCart, User } from 'lucide-react';
+import { Home, Grid, ShoppingCart, Package, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useCartStore } from '@/store/useCartStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function MobileNav() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const items = useCartStore((state) => state.items);
   const totalItems = mounted ? items.reduce((total, item) => total + item.quantity, 0) : 0;
+
+  const { isAuthenticated, user } = useAuthStore();
+  const isAdminUser = Boolean(
+    mounted &&
+    isAuthenticated &&
+    user &&
+    (user.role === 'admin' || user.role === 'warehouse' || user.role === 'cs')
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -21,11 +30,14 @@ export function MobileNav() {
     return null;
   }
 
+  // Base navigation items: Only display Admin if authenticated as an Admin/Staff
   const navItems = [
     { name: 'Beranda', href: ROUTES.HOME, icon: Home },
     { name: 'Katalog', href: ROUTES.PRODUCTS, icon: Grid },
     { name: 'Keranjang', href: ROUTES.CART, icon: ShoppingCart, isCart: true },
-    { name: 'Admin', href: ROUTES.ADMIN.DASHBOARD, icon: User },
+    isAdminUser
+      ? { name: 'Admin', href: ROUTES.ADMIN.DASHBOARD, icon: ShieldCheck }
+      : { name: 'Pesanan', href: ROUTES.MY_ORDERS, icon: Package },
   ];
 
   return (

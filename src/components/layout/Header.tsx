@@ -237,7 +237,7 @@ export function Header() {
                           <Package className="w-4 h-4 text-primary" />
                           <span>Riwayat Pesanan</span>
                         </Link>
-                        {user.role === 'admin' && (
+                        {(user.role === 'admin' || user.role === 'warehouse' || user.role === 'cs') && (
                           <Link
                             href={ROUTES.ADMIN.DASHBOARD}
                             onClick={() => setIsUserMenuOpen(false)}

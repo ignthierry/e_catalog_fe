@@ -1,4 +1,4 @@
-import { Product, Category, Banner, Order, OrderCounts } from '@/types';
+import { Product, Category, Banner, Order, OrderCounts, ActivityLog, ActivityLogsResponse } from '@/types';
 import productsData from '@/data/products.json';
 import categoriesData from '@/data/categories.json';
 import bannersData from '@/data/banners.json';
@@ -346,6 +346,65 @@ export const api = {
   },
 
   // ==========================================
+  // RajaOngkir Real-Time Shipping Endpoints
+  // ==========================================
+  shipping: {
+    searchDestinations: async (search: string): Promise<Array<{
+      id: number;
+      label: string;
+      subdistrict: string;
+      district: string;
+      city: string;
+      province: string;
+      zipCode: string;
+    }>> => {
+      if (!search || search.trim().length < 2) return [];
+      try {
+        const res = await fetch(`${API_BASE_URL}/shipping/destinations?search=${encodeURIComponent(search.trim())}`, {
+          cache: 'no-store',
+          headers: { 'Accept': 'application/json' },
+        });
+        if (!res.ok) return [];
+        const json = await res.json();
+        return Array.isArray(json.data) ? json.data : [];
+      } catch {
+        return [];
+      }
+    },
+
+    calculateCost: async (destinationId: number, weightGrams: number = 1000, courier?: string): Promise<Array<{
+      id: string;
+      code: string;
+      courierName: string;
+      service: string;
+      description: string;
+      cost: number;
+      etd: string;
+      name: string;
+    }>> => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/shipping/calculate-cost`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            destination: destinationId,
+            weight: weightGrams,
+            courier,
+          }),
+        });
+        if (!res.ok) return [];
+        const json = await res.json();
+        return Array.isArray(json.data) ? json.data : [];
+      } catch {
+        return [];
+      }
+    },
+  },
+
+  // ==========================================
   // Admin Endpoints
   // ==========================================
   admin: {
@@ -513,6 +572,41 @@ export const api = {
         body: formData,
       });
       return await res.json();
-    }
+    },
+
+    // Activity Logs & Audit Trail
+    getActivityLogs: async (params?: {
+      page?: number;
+      per_page?: number;
+      search?: string;
+      action?: string;
+      role?: string;
+      date?: string;
+    }): Promise<ActivityLogsResponse | null> => {
+      const query = new URLSearchParams();
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.per_page) query.append('per_page', String(params.per_page));
+      if (params?.search) query.append('search', params.search);
+      if (params?.action) query.append('action', params.action);
+      if (params?.role) query.append('role', params.role);
+      if (params?.date) query.append('date', params.date);
+
+      const queryString = query.toString() ? `?${query.toString()}` : '';
+      const res = await fetch(`${API_BASE_URL}/admin/activity-logs${queryString}`, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (!res.ok) return null;
+      return await res.json();
+    },
+
+    clearActivityLogs: async (olderThanDays: number = 30) => {
+      const res = await fetch(`${API_BASE_URL}/admin/activity-logs/clear?older_than_days=${olderThanDays}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+      });
+      return await res.json();
+    },
   }
 };
