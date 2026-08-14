@@ -96,9 +96,16 @@ export function ProductCard({ product }: ProductCardProps) {
               {formatCurrency(product.originalPrice)}
             </span>
           )}
-          <span className="font-bold text-base sm:text-lg text-primary">
-            {formatCurrency(product.price)}
-          </span>
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-bold text-base sm:text-lg text-primary">
+              {formatCurrency(product.price)}
+            </span>
+            <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+              {product.soldCount !== undefined || product.sold !== undefined
+                ? `${(product.soldCount ?? product.sold ?? 0) >= 1000 ? ((product.soldCount ?? product.sold ?? 0) / 1000).toFixed(1) + 'rb+' : (product.soldCount ?? product.sold ?? 0)} terjual`
+                : '15 terjual'}
+            </span>
+          </div>
         </div>
       </CardContent>
       

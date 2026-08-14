@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, ShoppingCart, X, ArrowRight, User as UserIcon, Package, LogOut, ChevronDown } from 'lucide-react';
+import { Search, ShoppingCart, X, ArrowRight, User as UserIcon, Package, LogOut, ChevronDown, Settings } from 'lucide-react';
 import { APP_CONFIG, ROUTES } from '@/lib/constants';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/whatsapp';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Button } from '@/components/ui/Button';
+import { fixMediaUrl } from '@/lib/api';
 
 export function Header() {
   const router = useRouter();
@@ -209,11 +210,20 @@ export function Header() {
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center gap-2 p-1.5 pl-2 rounded-full border border-border/80 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-full border border-border/80 hover:bg-muted transition-colors cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    {user.avatarUrl || user.avatar ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={fixMediaUrl(user.avatarUrl || user.avatar)}
+                        alt={user.name}
+                        className="w-7 h-7 rounded-full object-cover border border-primary/30 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <span className="text-xs font-bold max-w-[90px] truncate hidden sm:inline-block">
                       {user.name}
                     </span>
@@ -222,31 +232,54 @@ export function Header() {
 
                   {/* Dropdown Menu */}
                   {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50 animate-in zoom-in-95 duration-150">
-                      <div className="p-3.5 border-b border-border/60 bg-muted/20">
-                        <p className="text-xs font-extrabold text-foreground truncate">{user.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate font-mono">{user.email}</p>
+                    <div className="absolute right-0 mt-2 w-60 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50 animate-in zoom-in-95 duration-150">
+                      <div className="p-3.5 border-b border-border/60 bg-muted/20 flex items-center gap-3">
+                        {user.avatarUrl || user.avatar ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={fixMediaUrl(user.avatarUrl || user.avatar)}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover border border-primary/30 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-extrabold text-foreground truncate">{user.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate font-mono">{user.email}</p>
+                        </div>
                       </div>
 
                       <div className="p-1.5 space-y-0.5">
                         <Link
+                          href={ROUTES.ACCOUNT}
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold rounded-xl hover:bg-muted text-foreground transition-colors"
+                        >
+                          <Settings className="w-4 h-4 text-primary" />
+                          <span>Pengaturan Akun</span>
+                        </Link>
+                        <Link
                           href={ROUTES.MY_ORDERS}
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl hover:bg-muted text-foreground transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold rounded-xl hover:bg-muted text-foreground transition-colors"
                         >
-                          <Package className="w-4 h-4 text-primary" />
+                          <Package className="w-4 h-4 text-secondary" />
                           <span>Riwayat Pesanan</span>
                         </Link>
                         {(user.role === 'admin' || user.role === 'warehouse' || user.role === 'cs') && (
                           <Link
                             href={ROUTES.ADMIN.DASHBOARD}
                             onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl hover:bg-muted text-foreground transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold rounded-xl hover:bg-muted text-foreground transition-colors"
                           >
                             <UserIcon className="w-4 h-4 text-emerald-500" />
                             <span>Panel Admin</span>
                           </Link>
                         )}
+                        <div className="my-1 border-t border-border/50" />
                         <button
                           onClick={() => {
                             logout();

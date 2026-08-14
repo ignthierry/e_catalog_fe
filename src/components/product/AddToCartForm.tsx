@@ -39,8 +39,8 @@ export function AddToCartForm({ product }: AddToCartFormProps) {
       const selectedOption = selectedVariants[v.id];
       if (selectedOption && v.items) {
         const match = v.items.find((i) => i.name === selectedOption);
-        if (match?.additionalPrice) {
-          additionalPrice += match.additionalPrice;
+        if (match?.additionalPrice && Number(match.additionalPrice) > 0) {
+          additionalPrice += Number(match.additionalPrice);
         }
       }
     });
@@ -86,7 +86,7 @@ export function AddToCartForm({ product }: AddToCartFormProps) {
   };
 
   return (
-    <div className="space-y-6 my-6">
+    <div className="space-y-5 my-6">
       {product.variants && product.variants.length > 0 && (
         <VariantSelector 
           variants={product.variants} 
@@ -97,7 +97,7 @@ export function AddToCartForm({ product }: AddToCartFormProps) {
 
       {/* Dynamic Price Display if variant has custom price */}
       {additionalPrice > 0 && (
-        <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+        <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs font-bold text-primary">
             <Tag className="w-4 h-4" />
             <span>Harga Varian Terpilih:</span>
@@ -108,54 +108,65 @@ export function AddToCartForm({ product }: AddToCartFormProps) {
         </div>
       )}
       
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      {/* Quantity & Action Controls */}
+      <div className="space-y-3">
         {/* Quantity selector */}
-        <div className="flex items-center justify-between border border-input rounded-xl bg-background h-12 px-2 w-full sm:w-36 flex-shrink-0">
-          <button 
-            type="button"
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            disabled={quantity <= 1}
-            className="w-8 h-8 flex items-center justify-center font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg disabled:opacity-30 transition-colors cursor-pointer"
-          >
-            -
-          </button>
-          <span className="w-10 text-center font-bold text-base text-foreground">
-            {quantity}
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
+            Jumlah:
           </span>
-          <button 
-            type="button"
-            onClick={() => setQuantity(quantity + 1)}
-            disabled={quantity >= product.stock}
-            className="w-8 h-8 flex items-center justify-center font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg disabled:opacity-30 transition-colors cursor-pointer"
-          >
-            +
-          </button>
+          <div className="flex items-center border border-input rounded-xl bg-background h-10 px-1 shadow-2xs">
+            <button 
+              type="button"
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              disabled={quantity <= 1 || product.stock <= 0}
+              className="w-8 h-8 flex items-center justify-center font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg disabled:opacity-30 transition-colors cursor-pointer"
+              aria-label="Kurangi jumlah"
+            >
+              -
+            </button>
+            <span className="w-10 text-center font-bold text-sm sm:text-base text-foreground select-none">
+              {quantity}
+            </span>
+            <button 
+              type="button"
+              onClick={() => setQuantity(quantity + 1)}
+              disabled={quantity >= product.stock || product.stock <= 0}
+              className="w-8 h-8 flex items-center justify-center font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg disabled:opacity-30 transition-colors cursor-pointer"
+              aria-label="Tambah jumlah"
+            >
+              +
+            </button>
+          </div>
         </div>
-        
-        {/* Add to Cart Button */}
-        <Button 
-          type="button"
-          size="lg" 
-          variant="outline"
-          className="flex-1 gap-2 text-sm sm:text-base h-12 font-bold border-primary text-primary hover:bg-primary/10 transition-all rounded-xl cursor-pointer"
-          onClick={() => handleAddToCart(false)}
-          disabled={product.stock <= 0}
-        >
-          <ShoppingCart className="w-5 h-5" />
-          + Keranjang
-        </Button>
 
-        {/* Buy Now Button (Direct to Cart / In-App Checkout) */}
-        <Button 
-          type="button"
-          size="lg" 
-          className="flex-1 gap-2 text-sm sm:text-base h-12 font-extrabold shadow-sm transition-all rounded-xl cursor-pointer"
-          onClick={() => handleAddToCart(true)}
-          disabled={product.stock <= 0}
-        >
-          <ShoppingBag className="w-5 h-5" />
-          Beli Sekarang
-        </Button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Add to Cart Button */}
+          <Button 
+            type="button"
+            size="lg" 
+            variant="outline"
+            className="w-full gap-2 text-sm sm:text-base h-12 font-bold border-primary text-primary hover:bg-primary/10 transition-all rounded-xl cursor-pointer"
+            onClick={() => handleAddToCart(false)}
+            disabled={product.stock <= 0}
+          >
+            <ShoppingCart className="w-5 h-5 flex-shrink-0" />
+            <span>+ Keranjang</span>
+          </Button>
+
+          {/* Buy Now Button (Direct to Cart / In-App Checkout) */}
+          <Button 
+            type="button"
+            size="lg" 
+            className="w-full gap-2 text-sm sm:text-base h-12 font-extrabold shadow-sm transition-all rounded-xl cursor-pointer"
+            onClick={() => handleAddToCart(true)}
+            disabled={product.stock <= 0}
+          >
+            <ShoppingBag className="w-5 h-5 flex-shrink-0" />
+            <span>Beli Sekarang</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

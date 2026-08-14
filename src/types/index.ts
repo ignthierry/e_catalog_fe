@@ -26,6 +26,8 @@ export interface Product {
   isNew?: boolean;
   stock: number;
   rating?: number;
+  soldCount?: number;
+  sold?: number;
   variants?: Variant[];
   createdAt?: string;
 }
@@ -64,7 +66,28 @@ export interface User {
   name: string;
   email: string;
   phoneNumber?: string;
+  phone_number?: string;
+  avatar?: string;
+  avatarUrl?: string;
+  avatar_url?: string;
   role: 'admin' | 'customer' | 'warehouse' | 'cs';
+  address?: string;
+  provinceId?: string | number;
+  province_id?: string | number;
+  provinceName?: string;
+  province_name?: string;
+  cityId?: string | number;
+  city_id?: string | number;
+  cityName?: string;
+  city_name?: string;
+  subdistrictId?: string | number;
+  subdistrict_id?: string | number;
+  subdistrictName?: string;
+  subdistrict_name?: string;
+  postalCode?: string;
+  postal_code?: string;
+  createdAt?: string;
+  created_at?: string;
 }
 
 export interface OrderItem {

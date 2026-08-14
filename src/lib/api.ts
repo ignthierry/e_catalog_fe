@@ -282,6 +282,52 @@ export const api = {
       });
       return await res.json();
     },
+
+    updateProfile: async (data: Record<string, any>, token: string) => {
+      const isFormData = data instanceof FormData;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
+      if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'POST',
+        headers,
+        body: isFormData ? data : JSON.stringify(data),
+      });
+      return await res.json();
+    },
+
+    updatePassword: async (data: { current_password: string; new_password: string; new_password_confirmation: string }, token: string) => {
+      const res = await fetch(`${API_BASE_URL}/auth/password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    },
+
+    uploadAvatar: async (file: File, token: string) => {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch(`${API_BASE_URL}/auth/avatar`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      return await res.json();
+    },
   },
 
   // ==========================================
@@ -346,7 +392,7 @@ export const api = {
   },
 
   // ==========================================
-  // RajaOngkir Real-Time Shipping Endpoints
+  // Real-Time Shipping Endpoints
   // ==========================================
   shipping: {
     searchDestinations: async (search: string): Promise<Array<{

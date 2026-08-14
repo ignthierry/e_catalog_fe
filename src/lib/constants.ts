@@ -21,6 +21,7 @@ export const ROUTES = {
   CART: "/cart",
   CHECKOUT: "/checkout",
   MY_ORDERS: "/my-orders",
+  ACCOUNT: "/account",
   ORDERS: "/orders",
   ADMIN: {
     LOGIN: "/admin/login",

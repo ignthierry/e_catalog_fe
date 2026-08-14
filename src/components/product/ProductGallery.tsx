@@ -24,9 +24,9 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3 w-full">
+    <div className="flex flex-col gap-3 w-full min-w-0">
       {/* Main Image Viewport */}
-      <div className="aspect-square overflow-hidden rounded-3xl bg-white border border-border/60 relative shadow-xs group">
+      <div className="aspect-square overflow-hidden rounded-3xl bg-white border border-border/60 relative shadow-xs group w-full min-w-0">
         <Swiper
           onSwiper={setSwiperInstance}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}

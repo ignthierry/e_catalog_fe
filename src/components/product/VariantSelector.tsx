@@ -31,7 +31,8 @@ export function VariantSelector({ variants, selectedVariants, onChange }: Varian
             {variant.options.map((option) => {
               const isSelected = selectedVariants[variant.id] === option;
               const itemData = variant.items?.find((i) => i.name === option);
-              const hasAddPrice = itemData?.additionalPrice && itemData.additionalPrice > 0;
+              const addPrice = itemData?.additionalPrice !== undefined ? Number(itemData.additionalPrice) : 0;
+              const hasAddPrice = !isNaN(addPrice) && addPrice > 0;
 
               return (
                 <button
@@ -49,7 +50,7 @@ export function VariantSelector({ variants, selectedVariants, onChange }: Varian
                     <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${
                       isSelected ? 'bg-black/20 text-white' : 'bg-primary/10 text-primary'
                     }`}>
-                      +{formatCurrency(itemData.additionalPrice!)}
+                      +{formatCurrency(addPrice)}
                     </span>
                   )}
                 </button>

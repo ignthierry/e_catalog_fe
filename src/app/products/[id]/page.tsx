@@ -59,16 +59,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       <Breadcrumb items={breadcrumbItems} />
 
       {/* Main Product Section */}
-      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 bg-card p-4 sm:p-8 rounded-3xl border shadow-xs">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 bg-card p-5 sm:p-8 rounded-3xl border shadow-xs items-start">
         {/* Left: Product Gallery */}
-        <div className="w-full lg:w-1/2">
+        <div className="w-full min-w-0">
           <ProductGallery images={product.images} />
         </div>
         
         {/* Right: Product Info */}
-        <div className="w-full lg:w-1/2 flex flex-col justify-between">
+        <div className="w-full min-w-0 flex flex-col justify-between space-y-6">
           <div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               {product.isNew && (
                 <Badge className="bg-primary font-bold text-white shadow-xs">BARU</Badge>
               )}
@@ -77,19 +77,24 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   {category.name}
                 </Badge>
               )}
-              <Badge 
-                variant={product.stock > 0 ? "secondary" : "destructive"} 
-                className="ml-auto text-xs"
-              >
-                {product.stock > 0 ? `Stok: ${product.stock} pcs` : 'Stok Habis'}
-              </Badge>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-full border">
+                  {(product.soldCount ?? product.sold ?? 0) >= 1000 ? `${((product.soldCount ?? product.sold ?? 0) / 1000).toFixed(1)}rb+` : (product.soldCount ?? product.sold ?? 15)} Terjual
+                </span>
+                <Badge 
+                  variant={product.stock > 0 ? "secondary" : "destructive"} 
+                  className="text-xs"
+                >
+                  {product.stock > 0 ? `Stok: ${product.stock} pcs` : 'Stok Habis'}
+                </Badge>
+              </div>
             </div>
             
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground leading-tight break-words">
               {product.name}
             </h1>
             
-            <div className="flex items-baseline gap-3 my-4">
+            <div className="flex flex-wrap items-baseline gap-3 my-4">
               <span className="text-3xl sm:text-4xl font-extrabold text-primary">
                 {formatCurrency(product.price)}
               </span>
@@ -107,7 +112,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
             <div className="border-t pt-4 my-4">
               <h3 className="text-sm font-semibold text-foreground mb-2">Deskripsi Produk:</h3>
-              <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+              <p className="text-muted-foreground text-sm sm:text-base leading-relaxed break-words">
                 {product.description}
               </p>
             </div>
@@ -118,24 +123,24 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           </div>
           
           {/* Trust Badges */}
-          <div className="grid grid-cols-2 gap-3 mt-8 pt-6 border-t">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-6 border-t">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border min-w-0">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm">Produk Original</h4>
-                <p className="text-[11px] text-muted-foreground">100% Bergaransi Resmi</p>
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-xs sm:text-sm truncate">Produk Original</h4>
+                <p className="text-[11px] text-muted-foreground truncate">100% Bergaransi Resmi</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border min-w-0">
               <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center flex-shrink-0">
                 <Truck className="w-5 h-5" />
               </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm">Packing Aman</h4>
-                <p className="text-[11px] text-muted-foreground">Gratis Bubble Wrap</p>
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-xs sm:text-sm truncate">Packing Aman</h4>
+                <p className="text-[11px] text-muted-foreground truncate">Gratis Bubble Wrap</p>
               </div>
             </div>
           </div>

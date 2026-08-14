@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -21,7 +21,8 @@ import {
   Loader2,
   Search,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -32,6 +33,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { toast } from 'sonner';
 
@@ -45,6 +47,90 @@ export interface CourierRateOption {
   etd: string;
   name: string;
 }
+
+export interface CourierBrandConfig {
+  name: string;
+  shortName: string;
+  tagline: string;
+  badgeBg: string;
+  badgeText: string;
+  iconNode: React.ReactNode;
+}
+
+export const COURIER_CONFIGS: Record<string, CourierBrandConfig> = {
+  sicepat: {
+    name: 'SiCepat Express',
+    shortName: 'SiCepat',
+    tagline: 'Ketika Semua Jadi Mudah',
+    badgeBg: 'bg-red-500/10 border-red-500/20 text-red-600',
+    badgeText: 'SiCepat',
+    iconNode: (
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white flex items-center justify-center font-black text-xs shadow-xs tracking-tighter flex-shrink-0">
+        <span className="italic font-sans">Si<span className="text-amber-300 font-bold">⚡</span></span>
+      </div>
+    ),
+  },
+  jnt: {
+    name: 'J&T Express',
+    shortName: 'J&T',
+    tagline: 'Express Your Online Business',
+    badgeBg: 'bg-rose-500/10 border-rose-500/20 text-rose-600',
+    badgeText: 'J&T',
+    iconNode: (
+      <div className="w-8 h-8 rounded-xl bg-[#E30613] text-white flex items-center justify-center font-black text-[10px] shadow-xs tracking-tight flex-shrink-0">
+        <span>J&T</span>
+      </div>
+    ),
+  },
+  jne: {
+    name: 'JNE Express',
+    shortName: 'JNE',
+    tagline: 'Connecting Happiness',
+    badgeBg: 'bg-blue-500/10 border-blue-500/20 text-blue-600',
+    badgeText: 'JNE',
+    iconNode: (
+      <div className="w-8 h-8 rounded-xl bg-[#003B73] text-white flex items-center justify-center font-black text-[10px] shadow-xs tracking-tight flex-shrink-0">
+        <span className="text-red-500 font-bold">J</span><span>NE</span>
+      </div>
+    ),
+  },
+  anteraja: {
+    name: 'AnterAja',
+    shortName: 'AnterAja',
+    tagline: 'Pasti Bawa Hepi',
+    badgeBg: 'bg-purple-500/10 border-purple-500/20 text-purple-600',
+    badgeText: 'AnterAja',
+    iconNode: (
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#8E24AA] to-[#E91E63] text-white flex items-center justify-center font-black text-[9px] shadow-xs tracking-tight flex-shrink-0">
+        <span>anter</span>
+      </div>
+    ),
+  },
+  ninja: {
+    name: 'Ninja Xpress',
+    shortName: 'Ninja',
+    tagline: 'Pilihan Pengiriman Cepat',
+    badgeBg: 'bg-slate-500/10 border-slate-500/20 text-slate-700 dark:text-slate-300',
+    badgeText: 'Ninja',
+    iconNode: (
+      <div className="w-8 h-8 rounded-xl bg-slate-900 text-red-500 flex items-center justify-center font-black text-[9px] shadow-xs tracking-tight flex-shrink-0">
+        <span>NINJA</span>
+      </div>
+    ),
+  },
+  pos: {
+    name: 'POS Indonesia',
+    shortName: 'POS',
+    tagline: 'Pos Logistik Indonesia',
+    badgeBg: 'bg-orange-500/10 border-orange-500/20 text-orange-600',
+    badgeText: 'POS',
+    iconNode: (
+      <div className="w-8 h-8 rounded-xl bg-[#FF6F00] text-white flex items-center justify-center font-black text-[10px] shadow-xs tracking-tight flex-shrink-0">
+        <span>POS</span>
+      </div>
+    ),
+  },
+};
 
 const DEFAULT_FALLBACK_COURIERS: CourierRateOption[] = [
   { id: 'jne_reg', code: 'jne', courierName: 'JNE', service: 'REG', description: 'Layanan Reguler', cost: 18000, etd: '2-3 Hari', name: 'JNE Reguler (2-3 Hari)' },
@@ -70,7 +156,7 @@ export default function CheckoutPage() {
   const [shippingDetail, setShippingDetail] = useState('');
   const [notes, setNotes] = useState('');
 
-  // RajaOngkir Dynamic Destination & Couriers
+  // Destination & Couriers
   const [destinationQuery, setDestinationQuery] = useState('');
   const [destinationResults, setDestinationResults] = useState<Array<{
     id: number;
@@ -96,6 +182,18 @@ export default function CheckoutPage() {
   const [courierOptions, setCourierOptions] = useState<CourierRateOption[]>(DEFAULT_FALLBACK_COURIERS);
   const [selectedCourier, setSelectedCourier] = useState<CourierRateOption>(DEFAULT_FALLBACK_COURIERS[0]);
   const [isLoadingCouriers, setIsLoadingCouriers] = useState(false);
+  const [activeCourierTab, setActiveCourierTab] = useState<string>('all');
+
+  // Group couriers by provider code
+  const groupedCouriers = useMemo(() => {
+    const groups: Record<string, CourierRateOption[]> = {};
+    courierOptions.forEach((c) => {
+      const code = c.code.toLowerCase();
+      if (!groups[code]) groups[code] = [];
+      groups[code].push(c);
+    });
+    return groups;
+  }, [courierOptions]);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<'QRIS' | 'Transfer Bank'>('QRIS');
@@ -113,7 +211,18 @@ export default function CheckoutPage() {
     if (user) {
       if (user.name) setCustomerName(user.name);
       if (user.email) setCustomerEmail(user.email);
-      if (user.phoneNumber) setCustomerPhone(user.phoneNumber);
+      if (user.phoneNumber || user.phone_number) setCustomerPhone(user.phoneNumber || user.phone_number || '');
+      if (user.address) setShippingDetail(user.address);
+      if (user.subdistrictName || user.cityName || user.provinceName) {
+        setSelectedDestination({
+          id: Number(user.subdistrictId || user.subdistrict_id || 0),
+          label: `${user.subdistrictName || user.subdistrict_name || ''}, ${user.cityName || user.city_name || ''}, ${user.provinceName || user.province_name || ''}`,
+          subdistrict: user.subdistrictName || user.subdistrict_name || '',
+          city: user.cityName || user.city_name || '',
+          province: user.provinceName || user.province_name || '',
+          zipCode: user.postalCode || user.postal_code || '',
+        });
+      }
     }
   }, [user]);
 
@@ -131,7 +240,7 @@ export default function CheckoutPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced search for RajaOngkir destinations
+  // Debounced search for destinations
   useEffect(() => {
     if (!destinationQuery || destinationQuery.trim().length < 2) {
       setDestinationResults([]);
@@ -175,7 +284,7 @@ export default function CheckoutPage() {
     const calculatedWeight = Math.max(items.reduce((acc, it) => acc + (it.quantity * 500), 0), 1000);
 
     setIsLoadingCouriers(true);
-    toast.loading('Menghitung tarif ongkir resmi RajaOngkir...', { id: 'calc-shipping' });
+    toast.loading('Menghitung tarif ongkir otomatis...', { id: 'calc-shipping' });
 
     try {
       const rates = await api.shipping.calculateCost(dest.id, calculatedWeight);
@@ -220,7 +329,7 @@ export default function CheckoutPage() {
   }
 
   const subtotal = getTotalPrice();
-  const shippingCost = selectedCourier.cost;
+  const shippingCost = selectedDestination && selectedCourier ? selectedCourier.cost : 0;
   const grandTotal = subtotal + shippingCost;
 
   const handleCopyAccount = (number: string, bank: string) => {
@@ -244,58 +353,79 @@ export default function CheckoutPage() {
       return;
     }
 
-    const fullAddress = selectedDestination
-      ? `${shippingDetail.trim()} — [${selectedDestination.label}]`
-      : shippingDetail.trim();
+    if (!customerName || !customerPhone || !shippingDetail) {
+      toast.error('Mohon lengkapi nama, nomor telepon, dan detail alamat pengiriman');
+      return;
+    }
+
+    if (!selectedDestination) {
+      toast.error('Silakan pilih kecamatan atau kota tujuan pengiriman');
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error('Keranjang belanja Anda masih kosong');
+      return;
+    }
+
+    if (paymentMethod === 'Transfer Bank' && !paymentProofUrl) {
+      toast.error('Mohon unggah bukti transfer pembayaran terlebih dahulu');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
-
       const orderPayload = {
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_email: customerEmail || undefined,
-        shipping_address: fullAddress,
-        courier: selectedCourier.name,
+        shipping_address: `${shippingDetail}, ${selectedDestination.label}`,
+        courier: `${selectedCourier.courierName} - ${selectedCourier.service}`,
         shipping_cost: shippingCost,
         payment_method: paymentMethod,
         payment_proof: paymentProofUrl || undefined,
         notes: notes || undefined,
-        items: items.map((item) => ({
-          product_id: item.productId,
-          quantity: item.quantity,
-          price: item.price,
+        items: items.map((it) => ({
+          product_id: it.productId,
+          product_name: it.name,
+          variant_name: it.selectedVariants ? Object.values(it.selectedVariants).join(', ') : null,
+          image: it.image,
+          quantity: it.quantity,
+          price: it.price,
+          total: it.price * it.quantity,
         })),
       };
 
       const res = await api.orders.create(orderPayload, token);
 
       if (res && res.status === 'success' && res.data) {
-        const createdOrder = res.data;
         clearCart();
-        toast.success('Pesanan Berhasil Dibuat!', {
-          description: `Nomor Pesanan: ${createdOrder.orderNumber}`,
-        });
-        router.push(`${ROUTES.ORDERS}/${createdOrder.id}`);
+        toast.success('Pesanan berhasil dibuat!');
+        router.push(`/orders/${res.data.id || res.data.orderNumber}`);
       } else {
-        toast.error('Gagal membuat pesanan', {
-          description: res?.message || 'Terjadi kesalahan sistem, silakan coba lagi.',
-        });
+        toast.error(res?.message || 'Gagal memproses pesanan');
       }
-    } catch (error) {
-      console.error('Failed to create order:', error);
-      toast.error('Gagal terhubung ke server', {
-        description: 'Pastikan koneksi internet Anda stabil.',
-      });
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      toast.error('Terjadi kesalahan saat memproses pesanan');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 md:py-10 max-w-6xl">
-      {/* Back to Cart */}
-      <div className="flex items-center gap-3 mb-6 md:mb-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 md:py-10 space-y-8">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: 'Keranjang', href: ROUTES.CART },
+          { label: 'Checkout Pesanan' },
+        ]}
+      />
+
+      {/* Header */}
+      <div className="flex items-center gap-4">
         <Link 
           href={ROUTES.CART} 
           className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -307,7 +437,7 @@ export default function CheckoutPage() {
             Checkout Pesanan
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Tarif ongkir otomatis real-time via RajaOngkir & metode pembayaran resmi.
+            Tarif ongkir otomatis real-time & metode pembayaran resmi.
           </p>
         </div>
       </div>
@@ -343,7 +473,7 @@ export default function CheckoutPage() {
       <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Form: Data Pengiriman & Pembayaran */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Section 1: Alamat Pengiriman & RajaOngkir */}
+          {/* Section 1: Alamat Pengiriman */}
           <Card className="rounded-3xl border shadow-xs overflow-hidden">
             <div className="p-5 border-b bg-muted/20 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -351,12 +481,12 @@ export default function CheckoutPage() {
                   1
                 </div>
                 <h2 className="font-extrabold text-base text-foreground">
-                  Informasi Penerima & Ongkir RajaOngkir
+                  Informasi Penerima & Pengiriman
                 </h2>
               </div>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                Live RajaOngkir API
+                Cek Ongkir Otomatis
               </span>
             </div>
 
@@ -403,7 +533,7 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {/* RajaOngkir Destination Autocomplete */}
+              {/* Destination Autocomplete */}
               <div className="space-y-1.5 relative" ref={destinationDropdownRef}>
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
@@ -483,11 +613,11 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              {/* Kurir Ekspedisi Live */}
-              <div className="space-y-2 pt-2">
+              {/* Kurir Ekspedisi Live Dikelompokkan & Berlogo */}
+              <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-primary" /> Pilihan Ekspedisi & Tarif Real-Time
+                    <Truck className="w-4 h-4 text-primary" /> Pilihan Ekspedisi & Tarif Pengiriman
                   </label>
                   {isLoadingCouriers && (
                     <span className="text-[11px] text-primary flex items-center gap-1 font-bold">
@@ -496,44 +626,171 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {courierOptions.map((c) => (
-                    <div
-                      key={c.id}
-                      onClick={() => setSelectedCourier(c)}
-                      className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                        selectedCourier.id === c.id
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/40 shadow-xs'
-                          : 'border-border hover:border-primary/40 bg-card'
-                      }`}
-                    >
-                      <div className="min-w-0 pr-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
-                            {c.code.toUpperCase()}
-                          </span>
-                          <p className="text-xs font-bold text-foreground truncate">
-                            {c.service} ({c.etd})
-                          </p>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                          {c.courierName} • {c.description}
-                        </p>
-                        <p className="text-xs font-extrabold text-primary mt-1">
-                          {formatCurrency(c.cost)}
-                        </p>
-                      </div>
-
-                      {selectedCourier.id === c.id ? (
-                        <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 shadow-xs">
-                          <Check className="w-3.5 h-3.5" />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full border border-border flex-shrink-0" />
-                      )}
+                {!selectedDestination ? (
+                  <div className="p-4 sm:p-5 rounded-3xl border border-dashed border-primary/30 bg-primary/5 flex items-start sm:items-center gap-3.5 animate-in fade-in-50 duration-200">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 font-bold">
+                      <MapPin className="w-5 h-5" />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-foreground">
+                        Pilih Kecamatan / Kota Tujuan Terlebih Dahulu
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Ketik dan pilih kecamatan atau kota tujuan di kolom atas agar sistem dapat menampilkan tarif ongkir dan pilihan ekspedisi resmi.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Courier Provider Tabs */}
+                    {Object.keys(groupedCouriers).length > 1 && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setActiveCourierTab('all')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                            activeCourierTab === 'all'
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                          }`}
+                        >
+                          <Truck className="w-3.5 h-3.5" />
+                          <span>Semua ({courierOptions.length})</span>
+                        </button>
+
+                        {Object.entries(groupedCouriers).map(([code, options]) => {
+                          const brand = COURIER_CONFIGS[code] || {
+                            name: options[0]?.courierName || code.toUpperCase(),
+                            shortName: code.toUpperCase(),
+                          };
+                          const isTabActive = activeCourierTab === code;
+
+                          return (
+                            <button
+                              key={code}
+                              type="button"
+                              onClick={() => setActiveCourierTab(code)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                isTabActive
+                                  ? 'bg-primary text-white shadow-xs'
+                                  : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
+                              }`}
+                            >
+                              <span>{brand.shortName}</span>
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isTabActive ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
+                                {options.length}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Grouped Courier Cards */}
+                    <div className="space-y-4">
+                      {Object.entries(groupedCouriers)
+                        .filter(([code]) => activeCourierTab === 'all' || activeCourierTab === code)
+                        .map(([code, options]) => {
+                          const brand = COURIER_CONFIGS[code] || {
+                            name: options[0]?.courierName || code.toUpperCase(),
+                            shortName: code.toUpperCase(),
+                            tagline: 'Layanan Pengiriman',
+                            badgeBg: 'bg-primary/10 text-primary border-primary/20',
+                            badgeText: code.toUpperCase(),
+                            iconNode: (
+                              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-[10px] shadow-xs">
+                                <Truck className="w-4 h-4" />
+                              </div>
+                            ),
+                          };
+
+                          const minCost = Math.min(...options.map((o) => o.cost));
+
+                          return (
+                            <div 
+                              key={code} 
+                              className="p-4 rounded-3xl border border-border/80 bg-card/60 shadow-2xs space-y-3"
+                            >
+                              {/* Courier Group Header */}
+                              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                                <div className="flex items-center gap-2.5">
+                                  {brand.iconNode}
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h3 className="font-black text-sm text-foreground">
+                                        {brand.name}
+                                      </h3>
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                                        {options.length} Layanan
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {brand.tagline}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <span className="text-[10px] text-muted-foreground font-medium block">
+                                    Mulai dari
+                                  </span>
+                                  <span className="text-xs font-black text-primary">
+                                    {formatCurrency(minCost)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Services Grid for This Courier */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {options.map((c) => {
+                                  const isSelected = selectedCourier.id === c.id;
+
+                                  return (
+                                    <div
+                                      key={c.id}
+                                      onClick={() => setSelectedCourier(c)}
+                                      className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                                        isSelected
+                                          ? 'border-primary bg-primary/5 ring-2 ring-primary/40 shadow-xs'
+                                          : 'border-border/70 hover:border-primary/40 bg-background/80 hover:bg-card'
+                                      }`}
+                                    >
+                                      <div className="min-w-0 pr-2">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-xs font-black text-foreground">
+                                            {c.service}
+                                          </span>
+                                          {c.etd && (
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border">
+                                              {c.etd}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={c.description}>
+                                          {c.description || `${c.courierName} Service`}
+                                        </p>
+                                        <p className="text-xs font-black text-primary mt-1">
+                                          {formatCurrency(c.cost)}
+                                        </p>
+                                      </div>
+
+                                      {isSelected ? (
+                                        <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 shadow-xs animate-in zoom-in-50 duration-150">
+                                          <Check className="w-3.5 h-3.5" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-6 h-6 rounded-full border border-border/80 flex-shrink-0 hover:border-primary/60" />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="space-y-1.5 pt-1">
@@ -768,8 +1025,10 @@ export default function CheckoutPage() {
                 <span className="font-semibold text-foreground">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
-                <span>Ongkos Kirim ({selectedCourier.name.split(' ')[0]})</span>
-                <span className="font-semibold text-foreground">{formatCurrency(shippingCost)}</span>
+                <span>Ongkos Kirim {selectedDestination && selectedCourier ? `(${selectedCourier.courierName || selectedCourier.code.toUpperCase()})` : ''}</span>
+                <span className="font-semibold text-foreground">
+                  {selectedDestination && selectedCourier ? formatCurrency(shippingCost) : 'Belum memilih kota'}
+                </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Metode Pembayaran</span>
