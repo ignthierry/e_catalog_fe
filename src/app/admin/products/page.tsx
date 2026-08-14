@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Search, Plus, Edit, Trash2, Tag } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Tag, ShoppingBag } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/admin/ProductModal';
+import { ShopeeSyncModal } from '@/components/admin/ShopeeSyncModal';
 import { Product, Category } from '@/types';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/whatsapp';
@@ -19,6 +20,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShopeeModalOpen, setIsShopeeModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
   const loadData = async () => {
@@ -106,10 +108,21 @@ export default function AdminProductsPage() {
             Total {products.length} produk terdaftar dalam sistem katalog.
           </p>
         </div>
-        <Button onClick={handleOpenAddModal} className="gap-2 font-bold shadow-sm">
-          <Plus className="w-4 h-4" />
-          Tambah Produk
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsShopeeModalOpen(true)}
+            className="gap-2 font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shadow-xs"
+          >
+            <ShoppingBag className="w-4 h-4 text-primary" />
+            Sinkronkan Shopee / Reset Data
+          </Button>
+
+          <Button onClick={handleOpenAddModal} className="gap-2 font-bold shadow-sm rounded-xl cursor-pointer">
+            <Plus className="w-4 h-4" />
+            Tambah Produk
+          </Button>
+        </div>
       </div>
       
       <Card className="rounded-2xl border shadow-xs overflow-hidden">
@@ -229,13 +242,20 @@ export default function AdminProductsPage() {
         </CardContent>
       </Card>
 
-      {/* Interactive Modal */}
+      {/* Interactive Product Modal */}
       <ProductModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveProduct}
         productToEdit={productToEdit}
         categories={categories}
+      />
+
+      {/* Shopee Sync & Reset Modal */}
+      <ShopeeSyncModal
+        isOpen={isShopeeModalOpen}
+        onClose={() => setIsShopeeModalOpen(false)}
+        onSuccess={() => loadData()}
       />
     </div>
   );

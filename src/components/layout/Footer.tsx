@@ -15,7 +15,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border/50 bg-card/40 backdrop-blur-xs mt-auto py-4 text-xs text-muted-foreground">
-      <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         
         {/* Left: Brand */}
         <div className="flex items-center gap-2.5">

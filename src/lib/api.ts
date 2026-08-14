@@ -608,5 +608,22 @@ export const api = {
       });
       return await res.json();
     },
+
+    clearCatalogData: async () => {
+      const res = await fetch(`${API_BASE_URL}/admin/shopee/clear-data`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+      });
+      return await res.json();
+    },
+
+    resetAndImportShopee: async (items: any[]) => {
+      const res = await fetch(`${API_BASE_URL}/admin/shopee/reset-and-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      return await res.json();
+    },
   }
 };

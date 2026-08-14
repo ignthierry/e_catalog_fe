@@ -264,7 +264,7 @@ function ProductsPageContent() {
 
 export default function ProductsPage() {
   return (
-    <div className="container mx-auto px-4 py-6 md:py-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 md:py-10">
       <Suspense fallback={
         <div>
           <Skeleton className="w-48 h-8 mb-8" />

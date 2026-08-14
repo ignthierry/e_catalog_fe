@@ -158,7 +158,7 @@ export default function OrderDetailPage({ params }: PageProps) {
   const waUrl = `https://wa.me/${APP_CONFIG.defaultWhatsApp}?text=${waText}`;
 
   return (
-    <div className="container mx-auto px-4 py-6 md:py-10 max-w-5xl space-y-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 md:py-10 max-w-5xl space-y-8">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

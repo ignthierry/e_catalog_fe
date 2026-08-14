@@ -54,7 +54,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   ];
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8 space-y-10">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 md:py-10 space-y-10">
       {/* Breadcrumbs */}
       <Breadcrumb items={breadcrumbItems} />
 
