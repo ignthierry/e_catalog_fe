@@ -5,6 +5,78 @@ import bannersData from '@/data/banners.json';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
+/**
+ * Normalizes any image URL (handles localhost strings, /storage/ paths, or filenames)
+ * to ensure it points to the current active backend server on HTTPS.
+ */
+export function fixMediaUrl(url?: string | null): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+
+  // If already an external third-party URL (e.g. Unsplash, placeholder), return as-is
+  if (/^https?:\/\/(images\.unsplash\.com|via\.placeholder\.com|placehold\.co)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  const apiBase = API_BASE_URL.replace(/\/api\/?$/, '');
+
+  // If matches an upload filename (img_2026...) or /storage/uploads/ or /api/images/
+  const matchFilename = trimmed.match(/img_[0-9_a-zA-Z]+\.(png|jpg|jpeg|webp|gif|svg)/i);
+  if (matchFilename) {
+    return `${apiBase}/api/images/${matchFilename[0]}`;
+  }
+
+  // If has localhost:8000 or 127.0.0.1
+  if (trimmed.includes('localhost:8000') || trimmed.includes('127.0.0.1:8000')) {
+    return trimmed.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):8000(?:\/storage\/uploads\/|\/api\/images\/)?/i, `${apiBase}/api/images/`);
+  }
+
+  // If starts with relative /storage/ or /api/
+  if (trimmed.startsWith('/')) {
+    if (trimmed.startsWith('/storage/uploads/')) {
+      return `${apiBase}/api/images/${trimmed.replace('/storage/uploads/', '')}`;
+    }
+    if (trimmed.startsWith('/api/images/')) {
+      return `${apiBase}${trimmed}`;
+    }
+    return `${apiBase}${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+function normalizeProduct(p: Product): Product {
+  return {
+    ...p,
+    images: (p.images || []).map((img) => fixMediaUrl(img)),
+  };
+}
+
+function normalizeCategory(c: Category): Category {
+  return {
+    ...c,
+    image: c.image ? fixMediaUrl(c.image) : undefined,
+  };
+}
+
+function normalizeBanner(b: Banner): Banner {
+  return {
+    ...b,
+    image: fixMediaUrl(b.image),
+  };
+}
+
+function normalizeOrder(order: Order): Order {
+  return {
+    ...order,
+    paymentProof: order.paymentProof ? fixMediaUrl(order.paymentProof) : null,
+    items: (order.items || []).map((item) => ({
+      ...item,
+      image: fixMediaUrl(item.image),
+    })),
+  };
+}
+
 export interface DashboardData {
   stats: {
     totalProducts: number;
@@ -97,7 +169,7 @@ export const api = {
     const data = await fetchFromApi<Product[]>(`/products${queryString}`);
     
     if (data && Array.isArray(data) && data.length > 0) {
-      return data;
+      return data.map(normalizeProduct);
     }
     
     // Fallback to static JSON if backend unavailable
@@ -109,60 +181,62 @@ export const api = {
       const q = params.search.toLowerCase();
       result = result.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
     }
-    return result;
+    return result.map(normalizeProduct);
   },
   
   // Get product by ID or Slug
   getProductById: async (id: string): Promise<Product | undefined> => {
     const data = await fetchFromApi<Product>(`/products/${id}`);
     if (data && data.id) {
-      return data;
+      return normalizeProduct(data);
     }
-    return (productsData as Product[]).find(p => p.id === id);
+    const found = (productsData as Product[]).find(p => p.id === id);
+    return found ? normalizeProduct(found) : undefined;
   },
   
   // Get featured products for homepage
   getFeaturedProducts: async (): Promise<Product[]> => {
     const data = await fetchFromApi<Product[]>('/products/featured');
     if (data && Array.isArray(data) && data.length > 0) {
-      return data;
+      return data.map(normalizeProduct);
     }
-    return (productsData as Product[]).filter(p => p.isNew || p.originalPrice);
+    return (productsData as Product[]).filter(p => p.isNew || p.originalPrice).map(normalizeProduct);
   },
   
   // Get products by category
   getProductsByCategory: async (categoryId: string): Promise<Product[]> => {
     const data = await fetchFromApi<Product[]>(`/products?category=${categoryId}`);
     if (data && Array.isArray(data) && data.length > 0) {
-      return data;
+      return data.map(normalizeProduct);
     }
-    return (productsData as Product[]).filter(p => p.categoryId === categoryId);
+    return (productsData as Product[]).filter(p => p.categoryId === categoryId).map(normalizeProduct);
   },
 
   // Categories
   getCategories: async (): Promise<Category[]> => {
     const data = await fetchFromApi<Category[]>('/categories');
     if (data && Array.isArray(data) && data.length > 0) {
-      return data;
+      return data.map(normalizeCategory);
     }
-    return categoriesData as Category[];
+    return (categoriesData as Category[]).map(normalizeCategory);
   },
 
   getCategoryById: async (id: string): Promise<Category | undefined> => {
     const data = await fetchFromApi<Category>(`/categories/${id}`);
     if (data && data.id) {
-      return data;
+      return normalizeCategory(data);
     }
-    return (categoriesData as Category[]).find(c => c.id === id);
+    const found = (categoriesData as Category[]).find(c => c.id === id);
+    return found ? normalizeCategory(found) : undefined;
   },
 
   // Banners
   getBanners: async (): Promise<Banner[]> => {
     const data = await fetchFromApi<Banner[]>('/banners');
     if (data && Array.isArray(data) && data.length > 0) {
-      return data;
+      return data.map(normalizeBanner);
     }
-    return bannersData as Banner[];
+    return (bannersData as Banner[]).map(normalizeBanner);
   },
 
   // Settings
@@ -249,12 +323,12 @@ export const api = {
 
       if (!res.ok) return [];
       const json = await res.json();
-      return Array.isArray(json.data) ? json.data : [];
+      return Array.isArray(json.data) ? json.data.map(normalizeOrder) : [];
     },
 
     getById: async (idOrNumber: string): Promise<Order | null> => {
       const data = await fetchFromApi<Order>(`/orders/${idOrNumber}`);
-      return data;
+      return data ? normalizeOrder(data) : null;
     },
 
     uploadProof: async (orderId: string | number, paymentProofUrl: string) => {
@@ -263,7 +337,11 @@ export const api = {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ payment_proof: paymentProofUrl }),
       });
-      return await res.json();
+      const json = await res.json();
+      if (json && json.data) {
+        json.data = normalizeOrder(json.data);
+      }
+      return json;
     },
   },
 
@@ -273,6 +351,20 @@ export const api = {
   admin: {
     getDashboard: async (): Promise<DashboardData | null> => {
       const data = await fetchFromApi<DashboardData>('/admin/dashboard');
+      if (data) {
+        if (data.recentProducts) {
+          data.recentProducts = data.recentProducts.map((p) => ({
+            ...p,
+            image: fixMediaUrl(p.image),
+          }));
+        }
+        if (data.recentOrders) {
+          data.recentOrders = data.recentOrders.map((o) => ({
+            ...o,
+            paymentProof: o.paymentProof ? fixMediaUrl(o.paymentProof) : null,
+          }));
+        }
+      }
       return data;
     },
 
@@ -300,7 +392,7 @@ export const api = {
       if (!res.ok) return null;
       const json = await res.json();
       return {
-        orders: Array.isArray(json.data) ? json.data : [],
+        orders: Array.isArray(json.data) ? json.data.map(normalizeOrder) : [],
         counts: json.counts || { all: 0, pending: 0, verifying: 0, processing: 0, shipped: 0, completed: 0, cancelled: 0 },
       };
     },
