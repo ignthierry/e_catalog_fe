@@ -51,7 +51,10 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (user) {
@@ -97,6 +100,12 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      toast.error('Silakan masuk atau daftar akun terlebih dahulu untuk melakukan transaksi.');
+      setIsAuthModalOpen(true);
+      return;
+    }
 
     if (!customerName.trim() || !customerPhone.trim() || !shippingAddress.trim()) {
       toast.error('Mohon lengkapi Nama Penerima, Nomor WhatsApp, dan Alamat Pengiriman');
@@ -165,22 +174,28 @@ export default function CheckoutPage() {
 
       {/* Auth Banner if not logged in */}
       {!isAuthenticated && (
-        <div className="mb-8 p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
-            <div className="text-xs sm:text-sm">
-              <span className="font-bold text-foreground">Punya akun Customer OMEGA TOYS?</span>{' '}
-              <span className="text-muted-foreground">Masuk untuk mengisi data secara instan dan menyimpan riwayat belanja.</span>
+        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-destructive/5 border border-destructive/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-foreground">
+                Login / Pendaftaran Diperlukan
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Anda harus masuk atau mendaftar akun customer terlebih dahulu agar dapat membuat pesanan dan melacak transaksi.
+              </p>
             </div>
           </div>
           <Button
             type="button"
-            variant="outline"
             size="sm"
             onClick={() => setIsAuthModalOpen(true)}
-            className="rounded-xl font-bold text-xs flex-shrink-0"
+            className="rounded-xl font-bold text-xs flex-shrink-0 shadow-xs"
           >
-            Masuk / Daftar Akun
+            <Sparkles className="w-3.5 h-3.5 mr-1" />
+            Masuk / Daftar Sekarang
           </Button>
         </div>
       )}
@@ -538,24 +553,36 @@ export default function CheckoutPage() {
               </span>
             </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              disabled={isSubmitting}
-              className="w-full py-6 rounded-2xl font-black text-sm gap-2 shadow-sm"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Memproses Pesanan...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-5 h-5" />
-                  Konfirmasi & Buat Pesanan
-                </>
-              )}
-            </Button>
+            {!isAuthenticated ? (
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="w-full py-6 rounded-2xl font-black text-sm gap-2 shadow-sm bg-primary hover:bg-primary/90"
+              >
+                <Sparkles className="w-5 h-5" />
+                Masuk / Daftar untuk Buat Pesanan
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting}
+                className="w-full py-6 rounded-2xl font-black text-sm gap-2 shadow-sm"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Memproses Pesanan...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5" />
+                    Konfirmasi & Buat Pesanan
+                  </>
+                )}
+              </Button>
+            )}
 
             <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
               Dengan mengklik tombol di atas, pesanan Anda akan langsung tercatat di sistem admin OMEGA TOYS untuk segera diproses.
@@ -568,6 +595,10 @@ export default function CheckoutPage() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {
+          setIsAuthModalOpen(false);
+          toast.success('Berhasil login! Anda sekarang dapat menyelesaikan transaksi.');
+        }}
       />
     </div>
   );

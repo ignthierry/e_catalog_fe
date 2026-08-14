@@ -10,7 +10,6 @@ const outfit = Outfit({
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileNav } from "@/components/layout/MobileNav";
-import { FloatingWhatsApp } from "@/components/ui/FloatingWhatsApp";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -42,7 +41,6 @@ export default function RootLayout({
           </main>
           <Footer />
           <MobileNav />
-          <FloatingWhatsApp />
           <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
       </body>

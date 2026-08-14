@@ -57,16 +57,19 @@ export function HeroBanner() {
       >
         {banners.map((banner) => (
           <SwiperSlide key={banner.id} className="bg-slate-950">
-            <div className="relative w-full h-full bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 overflow-hidden flex items-center">
+            <div className="relative w-full h-full bg-slate-900 overflow-hidden flex items-center">
               
-              {/* Background Image with Dark Vignette for ultra-high contrast */}
+              {/* Background Image with crisp visibility */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={banner.image} 
                 alt={banner.title}
-                className="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-overlay"
+                className="absolute inset-0 w-full h-full object-cover object-center scale-[1.02] transition-transform duration-700"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent"></div>
+              
+              {/* Gradient scrim for clear text readability without drowning out the image */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/20 sm:to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20"></div>
               
               <div className="relative z-10 px-6 sm:px-10 md:px-16 py-6 max-w-2xl text-white">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-white/20 backdrop-blur-md px-3 py-1 rounded-full mb-2.5 text-white border border-white/30 shadow-xs">

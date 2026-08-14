@@ -39,7 +39,12 @@ export default function MyOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    if (isAuthenticated) {
+      fetchOrders();
+    } else {
+      setOrders([]);
+      setLoading(false);
+    }
   }, [isAuthenticated, user]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -132,47 +137,73 @@ export default function MyOrdersPage() {
 
       {/* Unauthenticated lookup form */}
       {!isAuthenticated && (
-        <Card className="rounded-3xl border shadow-xs p-5 bg-muted/15">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <Input
-                placeholder="Cari pesanan dengan Nomor HP atau Email Anda..."
-                value={searchPhoneOrEmail}
-                onChange={(e) => setSearchPhoneOrEmail(e.target.value)}
-                className="rounded-xl text-xs bg-background"
-              />
+        <Card className="rounded-3xl border shadow-xs p-5 sm:p-6 bg-primary/5 border-primary/20 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Masuk untuk Melihat Riwayat Pesanan
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Masuk atau daftar akun customer untuk melihat semua pesanan Anda secara otomatis.
+              </p>
             </div>
-            <Button type="submit" className="rounded-xl text-xs font-bold gap-1.5 flex-shrink-0">
-              <Search className="w-3.5 h-3.5" />
-              Cari Pesanan
+            <Button
+              type="button"
+              onClick={() => setIsAuthModalOpen(true)}
+              className="rounded-xl text-xs font-extrabold gap-1.5 flex-shrink-0 shadow-xs"
+            >
+              Masuk / Daftar Akun
             </Button>
-          </form>
+          </div>
+
+          <div className="pt-3 border-t border-border/60">
+            <p className="text-xs font-bold text-foreground mb-2">
+              Atau lacak pesanan secara manual:
+            </p>
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder="Ketik Nomor WhatsApp atau Email saat pemesanan..."
+                  value={searchPhoneOrEmail}
+                  onChange={(e) => setSearchPhoneOrEmail(e.target.value)}
+                  className="rounded-xl text-xs bg-background"
+                />
+              </div>
+              <Button type="submit" variant="outline" className="rounded-xl text-xs font-bold gap-1.5 flex-shrink-0">
+                <Search className="w-3.5 h-3.5" />
+                Cari Pesanan
+              </Button>
+            </form>
+          </div>
         </Card>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {[
-          { id: 'all', label: 'Semua' },
-          { id: 'pending', label: 'Belum Bayar' },
-          { id: 'paid', label: 'Verifikasi' },
-          { id: 'processing', label: 'Diproses' },
-          { id: 'shipped', label: 'Dikirim' },
-          { id: 'completed', label: 'Selesai' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setFilterStatus(tab.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              filterStatus === tab.id
-                ? 'bg-primary text-primary-foreground shadow-xs'
-                : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Filter Tabs (only if has orders) */}
+      {orders.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {[
+            { id: 'all', label: 'Semua' },
+            { id: 'pending', label: 'Belum Bayar' },
+            { id: 'paid', label: 'Verifikasi' },
+            { id: 'processing', label: 'Diproses' },
+            { id: 'shipped', label: 'Dikirim' },
+            { id: 'completed', label: 'Selesai' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilterStatus(tab.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                filterStatus === tab.id
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Orders List */}
       {loading ? (
@@ -254,14 +285,24 @@ export default function MyOrdersPage() {
             <ShoppingBag className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="font-extrabold text-base text-foreground">Belum Ada Pesanan</h3>
+            <h3 className="font-extrabold text-base text-foreground">
+              {!isAuthenticated ? 'Belum Ada Riwayat Ditampilkan' : 'Belum Ada Pesanan'}
+            </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-              Belum ada riwayat pesanan yang ditemukan. Ayo temukan koleksi mainan favorit si kecil sekarang!
+              {!isAuthenticated 
+                ? 'Silakan masuk ke akun Anda atau masukkan Nomor HP / Email di atas untuk melacak pesanan.'
+                : 'Belum ada riwayat pesanan yang ditemukan. Ayo temukan koleksi mainan favorit si kecil sekarang!'}
             </p>
           </div>
-          <Button asChild size="sm" className="rounded-xl font-bold">
-            <Link href={ROUTES.PRODUCTS}>Mulai Belanja</Link>
-          </Button>
+          {!isAuthenticated ? (
+            <Button size="sm" onClick={() => setIsAuthModalOpen(true)} className="rounded-xl font-bold">
+              Masuk / Daftar Akun
+            </Button>
+          ) : (
+            <Button asChild size="sm" className="rounded-xl font-bold">
+              <Link href={ROUTES.PRODUCTS}>Mulai Belanja</Link>
+            </Button>
+          )}
         </div>
       )}
 
