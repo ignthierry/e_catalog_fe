@@ -41,8 +41,8 @@ export function MobileNav() {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border pb-safe">
-      <div className="flex justify-around items-center h-16">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border pb-safe shadow-lg">
+      <div className="flex justify-around items-center h-16 px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== ROUTES.HOME && pathname.startsWith(item.href));
 
@@ -50,19 +50,19 @@ export function MobileNav() {
             <Link
               key={item.name}
               href={item.href}
-              className={`relative flex flex-col items-center justify-center w-full h-full space-y-1 ${
-                isActive ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
-              } transition-colors`}
+              className={`relative flex flex-col items-center justify-center flex-1 h-12 py-1 rounded-xl transition-all duration-200 ${
+                isActive ? 'text-primary font-bold bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 font-medium'
+              }`}
             >
-              <div className="relative">
-                <item.icon className="h-5 w-5" />
+              <div className="relative flex items-center justify-center">
+                <item.icon className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                 {item.isCart && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold text-white bg-primary rounded-full shadow-xs animate-in zoom-in-50 duration-200">
+                  <span className="absolute -top-1.5 -right-2.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-black text-white bg-primary rounded-full shadow-xs animate-in zoom-in-50 duration-200">
                     {totalItems > 99 ? '99+' : totalItems}
                   </span>
                 )}
               </div>
-              <span className="text-[10px]">{item.name}</span>
+              <span className="text-[11px] leading-tight mt-1 whitespace-nowrap">{item.name}</span>
             </Link>
           );
         })}

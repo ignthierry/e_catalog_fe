@@ -83,24 +83,24 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       
-      <CardContent className="p-3.5 sm:p-4 flex-1 flex flex-col">
+      <CardContent className="p-3 sm:p-4 flex-1 flex flex-col">
         <Link href={`${ROUTES.PRODUCTS}/${product.id}`}>
-          <h3 className="font-medium text-sm sm:text-base text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+          <h3 className="font-medium text-xs sm:text-base text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
             {product.name}
           </h3>
         </Link>
         
-        <div className="mt-auto pt-3 flex flex-col">
+        <div className="mt-auto pt-2 sm:pt-3 flex flex-col">
           {product.originalPrice && (
-            <span className="text-[11px] sm:text-xs text-muted-foreground line-through">
+            <span className="text-[10px] sm:text-xs text-muted-foreground line-through">
               {formatCurrency(product.originalPrice)}
             </span>
           )}
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="font-bold text-base sm:text-lg text-primary">
+          <div className="flex items-baseline justify-between gap-1">
+            <span className="font-bold text-sm sm:text-lg text-primary">
               {formatCurrency(product.price)}
             </span>
-            <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+            <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground whitespace-nowrap">
               {product.soldCount !== undefined || product.sold !== undefined
                 ? `${(product.soldCount ?? product.sold ?? 0) >= 1000 ? ((product.soldCount ?? product.sold ?? 0) / 1000).toFixed(1) + 'rb+' : (product.soldCount ?? product.sold ?? 0)} terjual`
                 : '15 terjual'}
@@ -109,16 +109,18 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </CardContent>
       
-      <CardFooter className="p-3.5 sm:p-4 pt-0">
+      <CardFooter className="p-2.5 sm:p-4 pt-0">
         <Button 
           onClick={handleQuickAdd}
-          className="w-full gap-1.5 text-xs sm:text-sm font-semibold transition-all active:scale-95 shadow-xs" 
+          className="w-full gap-1 text-[11px] sm:text-xs font-bold transition-all active:scale-95 shadow-xs h-8.5 sm:h-9 px-1.5" 
           size="sm"
           variant={product.stock <= 0 ? "secondary" : "default"}
           disabled={product.stock <= 0}
         >
-          <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          {product.stock <= 0 ? 'Habis' : (product.variants && product.variants.length > 0 ? 'Pilih Varian' : '+ Keranjang')}
+          <ShoppingCart className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">
+            {product.stock <= 0 ? 'Habis' : (product.variants && product.variants.length > 0 ? 'Pilih Varian' : '+ Keranjang')}
+          </span>
         </Button>
       </CardFooter>
     </Card>

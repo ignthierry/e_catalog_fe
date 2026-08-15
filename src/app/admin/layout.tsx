@@ -257,25 +257,39 @@ export default function AdminLayout({
       </main>
 
       {/* Mobile Bottom Navigation (Admin) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t flex justify-around p-1.5 z-40 pb-safe shadow-lg">
-        {sidebarItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex flex-col items-center p-2 rounded-xl text-[10px] font-medium transition-colors relative ${
-                isActive ? 'text-primary font-bold bg-primary/10' : 'text-muted-foreground'
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="mt-1">{item.name}</span>
-              {item.badge && (
-                <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-red-500"></span>
-              )}
-            </Link>
-          );
-        })}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-40 pb-safe shadow-lg">
+        <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto hide-scrollbar scroll-smooth touch-pan-x">
+          {sidebarItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex-shrink-0 flex flex-col items-center justify-center min-w-[68px] px-3 py-1.5 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? 'bg-primary text-white font-bold shadow-xs shadow-primary/30 scale-[1.02]'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 font-medium'
+                }`}
+              >
+                <div className="relative flex items-center justify-center">
+                  <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
+                  {item.badge && (
+                    <span
+                      className={`absolute -top-1.5 -right-2.5 min-w-[15px] h-3.5 px-1 rounded-full text-[9px] font-black flex items-center justify-center ${
+                        isActive ? 'bg-white text-primary' : 'bg-red-500 text-white animate-pulse'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="mt-1 text-[11px] leading-tight whitespace-nowrap">
+                  {item.name === 'Banner Promo' ? 'Banner' : item.name === 'Log Aktivitas' ? 'Aktivitas' : item.name}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

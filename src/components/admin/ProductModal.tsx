@@ -577,18 +577,18 @@ export function ProductModal({
           </div>
 
           {/* Form Actions */}
-          <div className="pt-4 border-t flex items-center justify-end gap-3 flex-shrink-0">
+          <div className="pt-4 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 flex-shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="rounded-xl font-bold text-xs"
+              className="w-full sm:w-auto rounded-xl font-bold text-xs h-10"
             >
               Batal
             </Button>
             <Button
               type="submit"
-              className="rounded-xl font-black text-xs px-6 shadow-sm"
+              className="w-full sm:w-auto rounded-xl font-black text-xs px-6 shadow-sm h-10"
             >
               {productToEdit ? 'Simpan Perubahan Produk' : 'Simpan Produk Baru'}
             </Button>

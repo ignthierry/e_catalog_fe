@@ -98,36 +98,40 @@ export default function AdminProductsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 md:pb-6">
+      {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
             Manajemen Produk
           </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
             Total {products.length} produk terdaftar dalam sistem katalog.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={() => setIsShopeeModalOpen(true)}
-            className="gap-2 font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shadow-xs"
+            className="w-full sm:w-auto gap-2 font-bold rounded-xl border-primary/30 text-primary hover:bg-primary/5 cursor-pointer shadow-xs text-xs sm:text-sm h-10 px-3.5"
           >
-            <ShoppingBag className="w-4 h-4 text-primary" />
-            Sinkronkan Shopee / Reset Data
+            <ShoppingBag className="w-4 h-4 text-primary flex-shrink-0" />
+            <span>Sinkron Shopee / Reset</span>
           </Button>
 
-          <Button onClick={handleOpenAddModal} className="gap-2 font-bold shadow-sm rounded-xl cursor-pointer">
-            <Plus className="w-4 h-4" />
-            Tambah Produk
+          <Button 
+            onClick={handleOpenAddModal} 
+            className="w-full sm:w-auto gap-2 font-bold shadow-sm rounded-xl cursor-pointer text-xs sm:text-sm h-10 px-4"
+          >
+            <Plus className="w-4 h-4 flex-shrink-0" />
+            <span>Tambah Produk</span>
           </Button>
         </div>
       </div>
       
       <Card className="rounded-2xl border shadow-xs overflow-hidden">
         <CardHeader className="p-4 border-b bg-muted/20">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative w-full max-w-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                 <Search className="h-4 w-4" />
@@ -139,14 +143,88 @@ export default function AdminProductsPage() {
                 className="pl-9 bg-background rounded-xl text-sm" 
               />
             </div>
-            <span className="text-xs text-muted-foreground hidden sm:inline-block">
+            <span className="text-xs text-muted-foreground">
               Menampilkan {filteredProducts.length} produk
             </span>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card View (Screens < md) */}
+          <div className="md:hidden divide-y divide-border/60">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <div key={product.id} className="p-3.5 flex flex-col gap-3 hover:bg-muted/10 transition-colors">
+                  <div className="flex items-start gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={product.images[0]} 
+                      alt={product.name} 
+                      className="w-16 h-16 rounded-xl object-cover bg-muted border flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-sm text-foreground line-clamp-2 leading-tight">
+                        {product.name}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-muted px-2 py-0.5 rounded-md text-foreground">
+                          <Tag className="w-3 h-3 text-muted-foreground" />
+                          {getCategoryName(product.categoryId)}
+                        </span>
+                        {product.stock > 0 ? (
+                          <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 font-semibold text-[10px] px-1.5 py-0.5">
+                            Stok: {product.stock}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="font-semibold text-[10px] px-1.5 py-0.5">
+                            Habis
+                          </Badge>
+                        )}
+                        {product.isNew && (
+                          <span className="text-[10px] font-bold text-primary uppercase">
+                            • Baru
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-border/40">
+                    <span className="font-black text-base text-primary">
+                      {formatCurrency(product.price)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleOpenEditModal(product)}
+                        className="h-8 px-3 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl gap-1"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDeleteProduct(product.id, product.name)}
+                        className="h-8 px-2.5 text-xs font-bold text-destructive border-destructive/20 hover:bg-destructive/10 rounded-xl gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Hapus
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                Tidak ada produk yang sesuai dengan &quot;{searchQuery}&quot;
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View (Screens >= md) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-muted-foreground uppercase bg-muted/40 border-b">
                 <tr>

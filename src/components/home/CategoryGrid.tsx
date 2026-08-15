@@ -142,7 +142,17 @@ export function CategoryGrid() {
           <Skeleton className="w-36 h-6 rounded-lg" />
           <Skeleton className="w-20 h-4 rounded-lg" />
         </div>
-        <div className="flex flex-wrap justify-center gap-3">
+        {/* Mobile Skeleton */}
+        <div className="grid grid-cols-4 gap-3 sm:hidden">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <Skeleton className="w-12 h-12 rounded-2xl" />
+              <Skeleton className="w-12 h-3 rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Desktop Skeleton */}
+        <div className="hidden sm:flex flex-wrap justify-center gap-3">
           {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <Skeleton key={i} className="h-11 w-44 rounded-2xl" />
           ))}
@@ -154,7 +164,7 @@ export function CategoryGrid() {
   return (
     <section className="py-3">
       {/* Section Header */}
-      <div className="flex items-center justify-between mb-4 px-1">
+      <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
         <div className="flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-primary animate-pulse" />
           <h3 className="font-extrabold text-base sm:text-lg text-foreground tracking-tight">
@@ -170,8 +180,34 @@ export function CategoryGrid() {
         </Link>
       </div>
       
-      {/* Centered Symmetrical Category Grid / Wrapped Pills */}
-      <div className="flex flex-wrap justify-center items-center gap-2.5 sm:gap-3.5 py-1">
+      {/* 1. Mobile View: Space-Saving 4-Column App-Style Grid (Super Compact & Clean) */}
+      <div className="grid grid-cols-4 gap-y-3.5 gap-x-2 sm:hidden py-1">
+        {categories.map((category, index) => {
+          const Icon = getCategoryIconComponent(category.name, category.slug, category.icon);
+          const accentColor = COLOR_ACCENTS[index % COLOR_ACCENTS.length];
+
+          return (
+            <Link 
+              key={category.id} 
+              href={`${ROUTES.PRODUCTS}?category=${category.id}`}
+              className="group flex flex-col items-center text-center gap-1.5 active:scale-95 transition-transform cursor-pointer"
+            >
+              {/* Squircle Icon Badge */}
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-border/70 shadow-2xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200 ${accentColor}`}>
+                <Icon className="w-5 h-5 transition-transform duration-200 group-hover:rotate-6" />
+              </div>
+
+              {/* Category Name */}
+              <span className="text-[11px] font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight px-0.5">
+                {category.name}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* 2. Desktop View: Symmetrical Horizontal Category Pills */}
+      <div className="hidden sm:flex flex-wrap justify-center items-center gap-2.5 sm:gap-3.5 py-1">
         {categories.map((category, index) => {
           const Icon = getCategoryIconComponent(category.name, category.slug, category.icon);
           const accentColor = COLOR_ACCENTS[index % COLOR_ACCENTS.length];
