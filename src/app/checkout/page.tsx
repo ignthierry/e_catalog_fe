@@ -388,6 +388,7 @@ export default function CheckoutPage() {
         notes: notes || undefined,
         items: items.map((it) => ({
           product_id: it.productId,
+          product_variant_id: it.variantId || null,
           product_name: it.name,
           variant_name: it.selectedVariants ? Object.values(it.selectedVariants).join(', ') : null,
           image: it.image,

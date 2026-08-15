@@ -59,6 +59,8 @@ export interface CartItem {
   image: string;
   quantity: number;
   selectedVariants?: Record<string, string>;
+  /** ProductVariant id of the selected variant option (for stock deduction) */
+  variantId?: string | null;
 }
 
 export interface User {

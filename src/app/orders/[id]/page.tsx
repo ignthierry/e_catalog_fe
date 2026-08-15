@@ -10,6 +10,7 @@ import { Order, OrderStatus } from '@/types';
 import { api } from '@/lib/api';
 import { APP_CONFIG, ROUTES } from '@/lib/constants';
 import { formatCurrency } from '@/lib/whatsapp';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { ImageUpload } from '@/components/ui/ImageUpload';
@@ -28,6 +29,13 @@ export default function OrderDetailPage({ params }: PageProps) {
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const [newProofUrl, setNewProofUrl] = useState('');
   const [copiedText, setCopiedText] = useState(false);
+
+  const whatsappNumber = useSettingsStore((s) => s.whatsappNumber);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const loadOrder = async () => {
     try {
@@ -155,7 +163,7 @@ export default function OrderDetailPage({ params }: PageProps) {
   const waText = encodeURIComponent(
     `Halo Admin OMEGA TOYS, saya ingin menanyakan status pesanan nomor invoice *${order.orderNumber}* atas nama *${order.customerName}* (Total: ${formatCurrency(order.grandTotal)}).`
   );
-  const waUrl = `https://wa.me/${APP_CONFIG.defaultWhatsApp}?text=${waText}`;
+  const waUrl = `https://wa.me/${whatsappNumber.replace(/[\s\-\+]/g, '')}?text=${waText}`;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 md:py-10 max-w-5xl space-y-8">

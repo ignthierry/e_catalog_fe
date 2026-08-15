@@ -58,6 +58,21 @@ export function AddToCartForm({ product }: AddToCartFormProps) {
 
   const handleAddToCart = (redirectToCart = false) => {
     const image = product.images.length > 0 ? product.images[0] : '';
+
+    // Resolve the ProductVariant id for the first selected variant option (if any)
+    let variantId: string | null = null;
+    if (product.variants && product.variants.length > 0) {
+      for (const v of product.variants) {
+        const selectedOption = selectedVariants[v.id];
+        if (selectedOption && v.items) {
+          const match = v.items.find((i) => i.name === selectedOption);
+          if (match?.id) {
+            variantId = String(match.id);
+            break;
+          }
+        }
+      }
+    }
     
     addItem({
       id: `${product.id}-${Date.now()}`,
@@ -67,6 +82,7 @@ export function AddToCartForm({ product }: AddToCartFormProps) {
       image,
       quantity,
       selectedVariants,
+      variantId,
     });
 
     const variantDesc = Object.values(selectedVariants).join(', ');

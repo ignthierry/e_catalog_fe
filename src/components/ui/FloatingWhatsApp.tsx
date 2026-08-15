@@ -4,11 +4,21 @@ import { MessageCircle } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { APP_CONFIG } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/whatsapp';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useEffect } from 'react';
 
 export function FloatingWhatsApp() {
   const pathname = usePathname();
+  const whatsappNumber = useSettingsStore((s) => s.whatsappNumber);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
   const whatsappUrl = getWhatsAppLink(
-    encodeURIComponent(`Halo ${APP_CONFIG.name}! Saya ingin bertanya seputar katalog mainan. 🎮`)
+    encodeURIComponent(`Halo ${APP_CONFIG.name}! Saya ingin bertanya seputar katalog mainan. 🎮`),
+    whatsappNumber
   );
 
   if (pathname?.startsWith('/admin')) {

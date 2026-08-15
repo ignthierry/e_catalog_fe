@@ -4,10 +4,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { APP_CONFIG, ROUTES } from '@/lib/constants';
 import { MessageCircle } from 'lucide-react';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useEffect } from 'react';
 
 export function Footer() {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
+  const whatsappNumber = useSettingsStore((s) => s.whatsappNumber);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   if (pathname?.startsWith('/admin')) {
     return null;
@@ -48,7 +56,7 @@ export function Footer() {
             Keranjang
           </Link>
           <a 
-            href={`https://wa.me/${APP_CONFIG.defaultWhatsApp}`}
+            href={`https://wa.me/${whatsappNumber.replace(/[\s\-\+]/g, '')}`}
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-primary transition-colors inline-flex items-center gap-1"
